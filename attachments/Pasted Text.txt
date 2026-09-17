@@ -1,0 +1,106 @@
+
+Catalyst, full build
+Build a complete iOS app called Catalyst. The design phase is finished and locked. Do not redesign, do not propose alternatives to settled decisions, do not ask me to confirm things already specified here. Build it.
+0. How to run this session
+Work autonomously through all phases in one continuous session. Do not stop between phases to ask permission. Stop only if a gate fails three times in a row or an external dependency is genuinely unavailable.
+Before anything else, answer one question: do you have a macOS environment with Xcode command-line tools, such that you can run xcodebuild and swift build? Say yes or no plainly. If no, say so, then proceed using swiftc type-checking or static analysis as your gate instead, and state clearly in every phase report that compilation was not verified. Do not claim a build passed if you could not run a build.
+The gate
+After every phase, run this checklist. It is mechanical. Every item is a yes or no with an objective answer. Do not substitute judgment for any of it.
+1. Does the project compile with zero errors?
+2. Does it compile with zero warnings? List any that remain and why.
+3. Does every screen have a working SwiftUI Preview that renders with seed data? (A SwiftUI Preview is a #Preview block that renders a view in isolation without launching the app.)
+4. Does every @Model type have at least one seeded instance in the fixture data?
+5. For each screen, list every content item required in section 6 of this spec, each marked present or absent.
+6. List every color literal used. Confirm each against the six approved hex values. Flag any others.
+7. Does the app launch to the Timeline screen with populated data, no crash, no empty state, on a fresh install?
+If any item fails, fix it and re-run the full checklist. Do not advance with a failing gate. Do not mark something present when it is absent, and do not fill a gap by inventing data that has no source in the fixtures.
+Reporting
+Maintain BUILD_LOG.md at repo root. After each phase append: what was built, the full gate checklist with results, anything you built that was not in this spec, and anything you could not verify. Be specific about what you did not check. A phase that reports only successes and no unverified items is a phase that was not checked carefully.
+Maintain DECISIONS.md for every choice not specified here, one line each with a reason.
+1. Stack, fixed
+* SwiftUI, iOS 17 minimum
+* SwiftData for all persistence
+* No backend. No server, no cloud database, no separate API project. Every piece of data is single-user and lives on device.
+* External data fetched directly from the client via URLSession with async/await
+* Swift Package Manager for any dependency, and prefer zero dependencies. Use Swift Charts (Apple's built-in framework) for the charts, not a third-party library.
+* A single committed Xcode project that opens and runs on a clean clone with no setup
+This is deliberate. Catalyst has no shared state between users, so a server would add failure modes without adding capability. Do not add one.
+2. Demo mode, load-bearing
+The app must run and demo completely with no network and no API keys.
+* A DemoMode flag, on by default, backed by a committed fixture dataset
+* Fixtures must populate every screen fully: tickers with prices, upcoming and past events, headlines, quick notes, complete journal entries, incomplete ones, and scored calls spanning enough history for the Review chart to have a real shape
+* Every empty state must also be reachable, via a Settings toggle or a seed-reset action
+* All external calls sit behind a protocol with a fixture implementation and a live implementation. Swapping must not touch view code.
+* Live mode reads keys from a gitignored Secrets.swift with a committed Secrets.example.swift template
+3. External APIs, live mode only
+* Finnhub (finnhub.io), free tier. Earnings calendar, the schedule of when public companies report quarterly results, plus quotes. Check whether the earnings calendar endpoint is on the free tier and report what you find.
+* Alpha Vantage (alphavantage.co), free tier. Fallback for historical prices when Finnhub rate-limits, meaning refuses further requests past a request cap.
+* NewsAPI (newsapi.org). Headlines.
+Caching rule. Company profile and sector data is static, a company's industry does not change week to week. Fetch once per ticker, persist in SwiftData, never re-fetch. Earnings dates poll once daily. Quotes fetch on demand with a short TTL. Never call a profile endpoint on screen load, it will exhaust the free tier immediately.
+4. Notifications
+Alerts at 24 hours and 1 hour before a tracked event.
+Use UNUserNotificationCenter, Apple's local notification framework. Local notifications work in the Simulator and need no paid developer account. Do not build APNs, do not build a push server. Schedule locally when an event is added to the timeline.
+Include a debug action that fires a scheduled notification immediately so it can be demoed without waiting.
+5. Brand, locked
+Logo mark: a two-tier step. Lower horizontal tread left, vertical riser ascending, upper horizontal tread right. An amber dot centered on the riser, sitting in a notch cut into the stroke on both sides. Flat geometric strokes, square caps, mitered joints, no gradients, no rounded terminals.
+64-unit grid: lower tread (6,52) to (28,52), riser at x=28 from y=52 to y=16, upper tread (28,16) to (58,16). Stroke 5 units. Riser cut between y=44.5 and y=23.5. Dot radius 6.5 centered at (28,34), in a 1.5-unit notch each side. At 60px: stroke 4.69px, dot 12.19px, ratio 2.60:1, notch 1.41px each side.
+Ship as a vector in the asset catalog plus a full app icon set so the Simulator home screen shows a real icon.
+Palette, exact, centralized in one Swift enum, never inlined in views:
+Role	Hex
+Primary	#0F1B2D
+Accent	#F2A93B
+Positive	#2FB67D
+Negative	#D9544D
+Light surface	#F7F8FA
+Dark surface	#131820
+Amber is the accent, not green, because green and red are reserved for price direction.
+Contrast rules:
+* Amber backgrounds always take dark text. White on amber is 2.00:1 and fails. Black on amber is 10.51:1.
+* Green and red are fills only, never bare glyph color on a translucent surface. Both fail white text.
+* Body text clears 4.5:1 per WCAG 2.1 AA, the Web Content Accessibility Guidelines standard for text legibility, AA being the common compliance tier.
+* Never stack opacity. A container at 0.55 multiplies every nested alpha inside it. Restate tones explicitly.
+System-wide: 12px corner radius on cards, pills, buttons. 8px spacing grid. 4px edge bars. System sans-serif. Dark mode primary. Designed at 390x844, respect safe-area insets.
+6. Screens
+Seven screens. Fixtures must populate all of them plus every empty state.
+1. Home / Timeline
+Vertical scroll, nearest event first. Sections "This Week" and "Next Week", each header showing a count that matches the actual card count. Row: ticker, company name, event type, date and time, countdown. Left edge bar signals urgency, not category: amber inside 48 hours, neutral gray outside. Event type stays identified by its text label. Tab bar: Timeline, Watchlist, Review, Settings. Empty state: "Your timeline is empty", body copy, "Add your first ticker" button, secondary "Or import from a broker CSV". Light mode supported here.
+2. Watchlist
+Add button. Search field ("Search ticker or event") with live autocomplete. Filter chips All / Held / Macro with counts. Row: ticker, company, last price, daily percent change, sub-row with next event and countdown. Swipe left reveals Mute and Remove.
+Search active: matches show company names, already-watched tickers marked "On watchlist" instead of offering a duplicate add. Footnote: "Search covers US-listed equities and ETFs. Macro releases are under Follow macro events."
+Macro events are followable as first-class items, showing "No quote" where a price would be. Empty state offers "Add a ticker" and "Follow macro events".
+3. Ticker Detail
+Back nav, Notify button. Ticker, company, price, dollar and percent change, "Delayed 15 min, indicative, not a quote". Sparkline with 1D / 1M / 6M / 1Y toggles. Next Event card, amber-bordered inside 48h, with "Write a note". Recent Headlines with source and age, "See all". Past Events with filter chips (All, Earnings, With notes), each showing next-day move and the user's note inline, or "No note recorded".
+Note composer sheet: event title, free text, three sentiment buttons (Bullish, Bearish, No view), disclaimer "Notes are yours only. Catalyst does not execute trades or give advice", Save note.
+4. Event Detail
+Sticky header with event name and countdown. Event type badge plus "Within 48h" or "Estimated" pill. Title, full date and time, ticker with "on your watchlist" marker. Description. Impact tags (High volatility, Sector-wide, Implied move, After close). Expected vs Prior table, three columns (metric, Consensus, prior actual) with a source footnote. Earnings: EPS, Revenue, segment revenue, gross margin. Macro: the relevant series. Related News, three headlines with source and age, "See all N". Your Note section showing the quick note with direction pill, edit time, and "Open full entry". Primary action button plus lock icon.
+Unconfirmed state: "Nothing confirmed yet", explanation that the date comes from the company's reporting pattern, "Start a note", "Notify me when confirmed".
+5. Journal Entry
+Sheet over Event Detail, 44px top radius. Header "Journal entry" with an INCOMPLETE or COMPLETE pill, or "New entry" when blank. Cancel. Subhead copy changes by state.
+Four fields: Direction (Up / Down / Flat, 48px tap targets), Conviction (1 to 5 slider with ticks, amber "Not set" when empty, "N of 5" when set, labeled "1 low" and "5 high"), Reasoning (free text, live counter, 500 hard limit), Invalidation condition (free text, placeholder "What would tell you this call was wrong?").
+Missing required fields carry amber treatment on both label and field border, matching each other in visual weight. Footer: "Save entry" when complete, "Save as incomplete" when not, disabled with "Pick a direction to continue" when blank. Footer status line explains the scoring consequence.
+Pre-fill: opening the full entry from an existing quick note carries over direction and free text. It never opens blank and discards prior input.
+6. Review
+Accuracy percentage with its denominator stated ("5 of 7 scored calls"). Line chart of rolling accuracy over time with a dashed 50% baseline, respecting active filters. Three filter dropdowns: ticker, event type, conviction. Applied filters render as removable chips with Clear all.
+Scoring gate: only entries with all four fields are scored. Incomplete entries are not invisible. They sit in a Pending section pinned above the scored list, each labeled with the specific missing field ("conviction missing"), with a Complete action, excluded from both the percentage and the chart. Under a filter, show the count of pending entries that filter hid.
+Scored Calls, newest first. Card: ticker and event, outcome pill (Called it / Missed), Predicted vs Actual side by side, conviction, actual next-day move with date. Resolution line beneath quoting the user's own invalidation threshold against the actual figure ("You wrote: margin guide below 73%. It came in at 71.5%").
+Empty state: "No scored calls yet", explaining a call scores the day after its event once all four fields exist, Pending section still visible below.
+7. Settings
+Notification timing preferences. Data source toggle. Account section. Theme selector (light, dark, system). DemoMode toggle. Seed-reset action for reaching empty states.
+7. Data model
+* A journal entry is complete when direction, conviction, reasoning, and invalidation are all non-nil. Completion is derived from field presence, never a stored user-set flag.
+* A quick note and a full entry are the same model with optional fields, not two types. A quick note is that model with conviction and invalidation nil.
+* Tickers and macro events are both followable but are different shapes. A macro event has no price, no quote, no company profile. Model them separately rather than forcing macro into a ticker row full of nils.
+* Profile and sector data is its own cached model keyed by ticker, written once, never invalidated on a schedule.
+* Events carry confirmed vs estimated state. An estimated event has a date from a reporting pattern and no consensus figures.
+8. Explicitly out of scope
+A ticker-suggestion or "related tickers" feature was considered and rejected. Do not build sector-matching recommendations, related-ticker blocks, or "you might also watch" surfaces anywhere. This was decided deliberately.
+No backend. No APNs. No third-party charting library. No authentication.
+9. Phases
+Run all five continuously. Gate after each.
+Phase 1. Xcode project that opens and launches on a clean clone. SwiftData models for every type in section 7. Color enum. Logo asset and app icon set. README. BUILD_LOG.md. Report whether you can run xcodebuild.
+Phase 2. Full fixture dataset covering all seven screens and every empty state. Repository protocols with fixture implementations. Every model seeded, every #Preview rendering.
+Phase 3. Screens 1 through 3 against fixtures. Must launch and navigate in the Simulator with no network at the end of this phase.
+Phase 4. Screens 4 through 6, including quick-note-to-full-entry pre-fill and the pending/scored split.
+Phase 5. Screen 7, local notification scheduling with the immediate-fire debug action, then live implementations of the repository protocols against the three APIs. Verify the app still works with DemoMode off.
+At the end, report the full gate checklist one final time across all seven screens.
+

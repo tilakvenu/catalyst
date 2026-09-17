@@ -1,0 +1,17 @@
+node_modules/
+.vercel/
+.tanstack/
+.grok/
+artifacts/
+*.log
+.env
+.env.*
+.DS_Store
+dist/
+.output/
+.nitro/
+native/Catalyst/Secrets.swift
+.node_modules.lock
+.project_id
+AGENTS.md
+public/__grok/

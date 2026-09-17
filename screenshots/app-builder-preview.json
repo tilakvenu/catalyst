@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Catalyst",
+      "hasCanvas": false,
+      "bodyTextLen": 919,
+      "bodyTextHash": "0a03df5ae6b8e0523a2fab5bb16717f66416ab6991be897a06cc460700af7e47",
+      "bodyTextPrefix": "Catalyst The call, then the score. Earnings, CPI, FOMC — journal",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Catalyst",
+      "hasCanvas": false,
+      "bodyTextLen": 758,
+      "bodyTextHash": "c125430e718bdbcb3f1de1246b9527248d597efcca4a0d75963c2879abbd567c",
+      "bodyTextPrefix": "11:33PM CPI 6h 11m 5G Timeline After hours·Session ended 4:00 ET",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

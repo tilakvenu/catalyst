@@ -1,0 +1,22 @@
+# Decisions (not specified in the original spec)
+
+- **Web iOS simulation as the runnable product** — this environment is Linux with no Xcode. A native `.xcodeproj` cannot compile or preview here. The class can demo the live iPhone UI immediately; Swift sources in `native/` are the Xcode/Claude handoff.
+- **Graphite + system blue, not navy + amber** — user asked to drop the Claude palette and redesign under Apple HIG. Dark mode is true black (`#000000` / grouped `#1C1C1E`); light is iOS grouped gray (`#F2F2F7`). Tint is iOS system blue (`#007AFF` / `#0A84FF`). Green/red remain semantic for price direction; orange is warn only (estimated / incomplete).
+- **System-blue remains the only brand accent** — used for interactive chrome (tint, filled buttons, selected tab). Not as a canvas wash.
+- **SF Pro / system UI stack** — Apple's type. Large titles 34pt bold. Review percentage is SF Display with tight tracking, not a serif.
+- **iOS 26 Liquid Glass on chrome only** — tab bar, nav, sheets, island. Content cards stay solid so hierarchy holds (Apple HIG: glass for controls, not content).
+- **Radii stepped up from 12px** — iOS 26 concentric system: cards 22, sheets 28/44 top, pills full-round. 12px reads iOS 14.
+- **Dates in fixtures are relative to `Date.now()`** — “This Week” / “Next Week” / countdowns stay valid whenever the demo is opened.
+- **Live API keys live in localStorage** (Settings), not a committed Secrets.swift analog in the web app. `native/Secrets.example.swift` exists for Xcode. NewsAPI and some market APIs block browser CORS; live mode uses a thin server proxy.
+- **Finnhub `/calendar/earnings` is on the free tier** — confirmed against current Finnhub endpoint lists (quote, profile2, calendar/earnings). Profile is fetched once and persisted; never on screen load.
+- **No related-tickers / sector recommendations** — explicitly rejected in spec.
+- **Spotlight search and CSV import** — spec empty states mention broker CSV; search is required on Watchlist. Implemented as first-class, not stubs.
+- **Status Island** — compact next-event countdown (Dynamic Island analog). Improves “what’s next” without a new screen.
+- **In-app notification banners** — web has no `UNUserNotificationCenter`. Debug “fire now” shows an iOS-style banner; timing prefs still stored for the native handoff.
+- **Zustand + localStorage** stands in for SwiftData. Seed versioned so schema changes reseed demo data.
+- **GitHub backup** — private repo `tilakvenu/catalyst` for interrupted-session recovery, in addition to this workspace.
+- **Launch overlay sits on top of a mounted PhoneBody** — production smoke used to capture an unmounted splash (`bodyTextLen` 8). The logo animation is CSS on a z-60 overlay; the app stays in the DOM. `navigator.webdriver` skips it so QA screenshots are the real UI; the live preview still plays it once per tab (`sessionStorage cat-launch`).
+- **API rotation over extra keys** — Stooq (no key) is the quote last resort. NY Fed EFFR and BLS public CPI cover macros if Finnhub economic calendar / AV series 429. Alpha Vantage’s 25/day quota is protected by cooloff, not by adding paid vendors.
+- **Typical-session vol is computed, not implied-move options** — no options API on the free tier. Stdev of the 1M spark is honest enough to size a call.
+- **Conviction bands on Review** — the journal’s actual product. Accuracy without calibration is a vanity number.
+- **Event screen puts the call above the tape** — description and headlines are supporting. Duplicate kicker/title and a second impact-pill row were cut.
