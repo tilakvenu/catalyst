@@ -91,13 +91,30 @@ final class Headline {
     var publishedAt: Date
     var tickerSymbol: String?
     var macroName: String?
+    var url: String?
+    var summary: String?
+    /// target | announcement | filing | coverage
+    var kind: String
+    /// high | medium | low — likely next-session price impact
+    var impact: String
+    var why: String?
+    /// heuristic | grok | fixture
+    var scoredBy: String
 
-    init(title: String, source: String, publishedAt: Date, tickerSymbol: String? = nil, macroName: String? = nil) {
+    init(title: String, source: String, publishedAt: Date, tickerSymbol: String? = nil, macroName: String? = nil,
+         url: String? = nil, summary: String? = nil, kind: String = "coverage", impact: String = "low",
+         why: String? = nil, scoredBy: String = "heuristic") {
         self.title = title
         self.source = source
         self.publishedAt = publishedAt
         self.tickerSymbol = tickerSymbol
         self.macroName = macroName
+        self.url = url
+        self.summary = summary
+        self.kind = kind
+        self.impact = impact
+        self.why = why
+        self.scoredBy = scoredBy
     }
 }
 

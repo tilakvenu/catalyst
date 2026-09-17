@@ -66,8 +66,10 @@ export function SettingsScreen() {
           <div className="space-y-2 px-4 pb-4">
             <p className="text-[12px] text-[var(--fg-muted)]">
               Keys stay on this device. If a source 429s it cools off and the next one answers.
-              Quote: Finnhub → Alpha Vantage → Stooq. News: Finnhub company-news → NewsAPI.
-              Earnings history: Finnhub → Alpha Vantage. Calendar: Finnhub → Alpha Vantage.
+              Quote: Finnhub → Alpha Vantage → Stooq. News tape (no key): Yahoo Finance RSS → Google
+              News RSS → Nasdaq RSS → Seeking Alpha → FreeNewsAPI. If keys are set: Finnhub
+              company-news → NewsAPI → Alpha Vantage NEWS_SENTIMENT. Rank with Grok re-scores the
+              tape. Earnings history: Finnhub → Alpha Vantage. Calendar: Finnhub → Alpha Vantage.
               Metrics: Finnhub metric/profile → Alpha Vantage overview. Macro prints: Finnhub
               economic calendar → Alpha Vantage series → NY Fed / BLS.
             </p>

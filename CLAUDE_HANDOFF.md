@@ -23,7 +23,7 @@ Until that passes, say so. Do not claim a Simulator launch if you could not run 
 
 ## Screens already specified
 
-Timeline, Watchlist, Ticker Detail, Event Detail, Journal Entry, Review, Settings. Fixtures populate all of them plus empty states (Settings → Reset to empty).
+Timeline, Watchlist, **News**, Ticker Detail, Event Detail, Journal Entry, Review, Settings. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style watchlist tape with High / Med / Low impact flags (price-move, not sentiment).
 
 ## Design deltas from the original spec (intentional)
 
@@ -49,6 +49,6 @@ Timeline, Watchlist, Ticker Detail, Event Detail, Journal Entry, Review, Setting
 - Conviction calibration on Review (hit rate at 1–2 / 3 / 4–5)
 - Review tab badge = pending count
 - Macro last print on Watchlist (CPI / FFR / NFP) instead of “No quote”
-- Live rotation (429 cooloff): quote Finnhub → AV → Stooq; news Finnhub → NewsAPI; earnings Finnhub → AV; calendar Finnhub → AV; metrics Finnhub → AV OVERVIEW; macro Finnhub econ calendar → AV series → NY Fed EFFR / BLS
+- Live rotation (429 cooloff): quote Finnhub → AV → Stooq; **news tape (no key)** Yahoo RSS → Google News RSS → Nasdaq RSS → Seeking Alpha → FreeNewsAPI, then Finnhub company-news → NewsAPI → AV NEWS_SENTIMENT; **Rank with Grok** is user-initiated; earnings Finnhub → AV; calendar Finnhub → AV; metrics Finnhub → AV OVERVIEW; macro Finnhub econ calendar → AV series → NY Fed EFFR / BLS
 - Watchlist scan pulls the next earnings date for followed names and fills estimated events
 - No related-tickers. No backend accounts.

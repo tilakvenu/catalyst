@@ -1,4 +1,5 @@
 import { makeSpark } from "./format";
+import { decorateHeadline } from "./impact";
 import type {
   AppSnapshot,
   CatalystEvent,
@@ -538,83 +539,90 @@ export function buildDemoSnapshot(now = Date.now()): AppSnapshot {
     },
   ];
 
-  const headlines: Headline[] = [
+  const rawHeadlines: Headline[] = [
     {
       id: "h1",
+      tickerId: "nvda",
+      title: "Morgan Stanley raises NVDA price target to $220 on Blackwell ramp",
+      source: "Morgan Stanley",
+      publishedAt: at(now, -2),
+      summary: "PT lifted from $185. Street is still catching up to CoWoS allocation in 4Q.",
+    },
+    {
+      id: "h2",
       tickerId: "nvda",
       title: "TSMC said to raise CoWoS allocation for Blackwell in 4Q",
       source: "Reuters",
       publishedAt: at(now, -5),
+      summary: "Supply-chain sources say extra CoWoS capacity is earmarked for NVDA, not competitors.",
     },
     {
-      id: "h2",
+      id: "h3",
       tickerId: "nvda",
       title: "Cloud hyperscalers lock multi-year GPU supply, filings show",
       source: "The Information",
       publishedAt: at(now, -18),
     },
     {
-      id: "h3",
-      tickerId: "nvda",
-      title: "Implied move into print: 8.4%, below the 4-quarter average",
-      source: "Bloomberg",
+      id: "h4",
+      tickerId: "aapl",
+      title: "Apple announces expanded iPhone 17 production after preorders beat plan",
+      source: "Company",
       publishedAt: at(now, -3),
+      summary: "Cupertino is adding a second assembly line in India. Hardware mix, not Services, is the swing.",
     },
     {
-      id: "h4",
+      id: "h5",
       tickerId: "aapl",
       title: "iPhone 17 preorders track ahead of 16 in the first 72 hours, channel checks",
       source: "Wedbush",
       publishedAt: at(now, -11),
     },
     {
-      id: "h5",
-      tickerId: "aapl",
-      title: "Services growth still the margin offset if hardware mix disappoints",
-      source: "Barron's",
-      publishedAt: at(now, -30),
-    },
-    {
       id: "h6",
       tickerId: "msft",
-      title: "Azure AI capacity remains the constraint, not demand",
-      source: "The Information",
-      publishedAt: at(now, -14 * 24 + 8),
+      title: "Goldman upgrades MSFT to Overweight from Neutral, $560 target",
+      source: "Goldman Sachs",
+      publishedAt: at(now, -6),
+      summary: "Azure AI capacity remains the constraint, not demand. Rating change is the flow event.",
     },
     {
       id: "h7",
       tickerId: "amzn",
-      title: "AWS growth scare last quarter still frames the setup",
-      source: "Financial Times",
-      publishedAt: at(now, -12),
+      title: "Wedbush initiates AMZN coverage at Outperform, $250 price target",
+      source: "Wedbush",
+      publishedAt: at(now, -10),
     },
     {
       id: "h8",
       tickerId: "meta",
-      title: "Advertisers returning to Reels; pricing up sequentially",
-      source: "WSJ",
-      publishedAt: at(now, -9),
+      title: "Meta announces $40B buyback and raises 2026 capex guide",
+      source: "Company",
+      publishedAt: at(now, -4),
+      summary: "Buyback is the floor. Capex raise is the tell on Reels and AI infra.",
     },
     {
       id: "h9",
       tickerId: "jpm",
-      title: "NII guide is the only number that matters this print",
-      source: "Bloomberg",
-      publishedAt: at(now, -7),
+      title: "JPM 8-K: NII guide cut $1.2B on deposit mix",
+      source: "SEC",
+      publishedAt: at(now, -8),
+      summary: "The only number that matters this print is now lower. Primary filing.",
     },
     {
       id: "h10",
       tickerId: "tsla",
-      title: "Robotaxi commentary, not deliveries, is the swing factor",
-      source: "Reuters",
-      publishedAt: at(now, -22),
+      title: "Tesla files 8-K: unsupervised robotaxi timeline delayed to 2027",
+      source: "SEC",
+      publishedAt: at(now, -1),
+      summary: "Deliveries were never the swing. This 8-K is.",
     },
     {
       id: "h11",
       tickerId: "avgo",
-      title: "Custom AI silicon backlog extends through 2027, supply chain says",
-      source: "Nikkei",
-      publishedAt: at(now, -8),
+      title: "Broadcom announces custom AI ASIC design win with a second hyperscaler",
+      source: "Company",
+      publishedAt: at(now, -1.5),
     },
     {
       id: "h12",
@@ -640,11 +648,37 @@ export function buildDemoSnapshot(now = Date.now()): AppSnapshot {
     {
       id: "h15",
       tickerId: "spy",
-      title: "Index implied vol cheap vs. the event stack this week",
-      source: "Cboe",
-      publishedAt: at(now, -6),
+      title: "These 7 stocks to buy ahead of CPI — here's why",
+      source: "Motley Fool",
+      publishedAt: at(now, -1),
+    },
+    {
+      id: "h16",
+      tickerId: "nvda",
+      title: "Implied move into print: 8.4%, below the 4-quarter average",
+      source: "Bloomberg",
+      publishedAt: at(now, -3),
+    },
+    {
+      id: "h17",
+      tickerId: "aapl",
+      title: "Services growth still the margin offset if hardware mix disappoints",
+      source: "Barron's",
+      publishedAt: at(now, -30),
+    },
+    {
+      id: "h18",
+      tickerId: "avgo",
+      title: "Custom AI silicon backlog extends through 2027, supply chain says",
+      source: "Nikkei",
+      publishedAt: at(now, -8),
     },
   ];
+
+  const headlines: Headline[] = rawHeadlines.map((h) => {
+    const deco = decorateHeadline(h);
+    return { ...h, ...deco, scoredBy: "fixture" as const, origin: "fixture" as const };
+  });
 
   const entries: JournalEntry[] = [
     // Quick note on upcoming NVDA — incomplete (no conviction, no invalidation)

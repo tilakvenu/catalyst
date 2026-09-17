@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { ageLabel, countdown, formatPct, formatWhen, impactLabel, sessionLabel } from "@/lib/catalyst/format";
+import { impactLabel as newsImpactLabel, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
 import { typicalSessionPct } from "@/lib/catalyst/scoring";
 import { entryFor, eventLabel, isUrgent, kindLabel, suggestedPrint } from "@/lib/catalyst/selectors";
 import { isEntryComplete } from "@/lib/catalyst/types";
@@ -184,16 +185,24 @@ export function EventScreen({ id }: { id: string }) {
             </div>
             <div className="mt-2 overflow-hidden rounded-[22px]" style={{ background: "var(--bg-card)" }}>
               {news.slice(0, 2).map((h, i) => (
-                <div
+                <button
                   key={h.id}
-                  className="px-3.5 py-3"
+                  type="button"
+                  onClick={() => store.openSheet({ name: "article", id: h.id })}
+                  className="w-full px-3.5 py-3 text-left"
                   style={{ boxShadow: i === 0 ? "inset 0 -0.5px 0 var(--hairline)" : undefined }}
                 >
-                  <p className="text-[15px] font-medium leading-snug">{h.title}</p>
+                  <div className="flex items-center gap-1.5">
+                    <Pill tone={h.impact === "high" ? "neg" : h.impact === "medium" ? "warn" : "neutral"}>
+                      {newsImpactLabel(h.impact)}
+                    </Pill>
+                    <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(h.kind)}</span>
+                  </div>
+                  <p className="mt-1 text-[15px] font-medium leading-snug">{h.title}</p>
                   <p className="mt-1 text-[12px] text-[var(--fg-faint)]">
                     {h.source} · {ageLabel(h.publishedAt, store.now)}
                   </p>
-                </div>
+                </button>
               ))}
             </div>
           </>

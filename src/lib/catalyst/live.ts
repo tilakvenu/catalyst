@@ -3,7 +3,8 @@
  * Live calls go through /api/live, which rotates sources and cools off 429s:
  *
  *   quote      Finnhub → Alpha Vantage → Stooq (no key)
- *   news       Finnhub company-news → NewsAPI
+ *   news       Yahoo RSS → Google News RSS → Nasdaq RSS → Seeking Alpha
+ *              → FreeNewsAPI → Finnhub company-news → NewsAPI → AV NEWS_SENTIMENT
  *   earnings   Finnhub /stock/earnings → Alpha Vantage EARNINGS
  *   recs       Finnhub /stock/recommendation
  *   metrics    Finnhub /stock/metric + profile2 → Alpha Vantage OVERVIEW
@@ -15,7 +16,7 @@
  * skipped for a minute so one 429 doesn't burn the rest of the keys.
  */
 
-import type { CalendarHit, EarningsPrint, MacroPrint, MacroSeriesId, Recommendation, TapeMetrics } from "./types";
+import type { CalendarHit, EarningsPrint, Headline, MacroPrint, MacroSeriesId, Recommendation, TapeMetrics } from "./types";
 
 export interface QuoteResult {
   lastPrice: number;
@@ -54,9 +55,33 @@ export async function liveNews(
   symbol: string,
   keys: LiveKeys,
 ): Promise<{ title: string; source: string; publishedAt: string }[]> {
-  if (!keys.finnhub && !keys.newsapi) return [];
   try {
     const data = await post({ action: "news", symbol, keys });
+    return Array.isArray(data?.items) ? data.items : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function liveWatchlistNews(
+  tickers: { symbol: string; company: string; tickerId: string }[],
+  keys: LiveKeys,
+): Promise<Headline[]> {
+  if (!tickers.length) return [];
+  try {
+    const data = await post({ action: "news-tape", tickers, keys });
+    return Array.isArray(data?.items) ? (data.items as Headline[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function liveScoreNews(
+  items: { id: string; symbol: string; title: string; summary?: string }[],
+): Promise<{ id: string; impact: "high" | "medium" | "low"; why: string }[]> {
+  if (!items.length) return [];
+  try {
+    const data = await post({ action: "score-news", items });
     return Array.isArray(data?.items) ? data.items : [];
   } catch {
     return [];

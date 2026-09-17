@@ -38,7 +38,7 @@ Until that passes, say so. Do not claim a Simulator launch if you could not run 
 
 Watch tickers/macros → see catalysts → write a call → score it the session after.
 
-Screens: Timeline, Watchlist, Ticker, Event, Journal, Review, Settings.
+Screens: Timeline, Watchlist, News, Ticker, Event, Journal, Review, Settings.
 
 Launch overlay analog: SwiftUI overlay on the root that fades into the tab. Do not unmount the app behind a storyboard splash.
 
@@ -47,7 +47,8 @@ Launch overlay analog: SwiftUI overlay on the root that fades into the tab. Do n
 Views never call vendors. Rotate on 429:
 
 - quote: Finnhub → Alpha Vantage → Stooq
-- news: Finnhub company-news → NewsAPI
+- news tape (no key): Yahoo RSS → Google News RSS → Nasdaq RSS → Seeking Alpha → FreeNewsAPI → Finnhub company-news → NewsAPI → AV NEWS_SENTIMENT
+- impact rank: keyword heuristic, then optional user-initiated Rank with Grok
 - earnings + calendar: Finnhub → AV
 - metrics: Finnhub → AV OVERVIEW
 - macro: Finnhub economic calendar → AV series → NY Fed EFFR / BLS

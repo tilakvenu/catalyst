@@ -1,4 +1,4 @@
-export const SEED_VERSION = 5;
+export const SEED_VERSION = 7;
 
 export type Direction = "up" | "down" | "flat";
 export type Sentiment = "bullish" | "bearish" | "none";
@@ -6,12 +6,15 @@ export type EventKind = "earnings" | "macro" | "product";
 export type Session = "bmo" | "amc" | "intraday";
 export type ImpactTag = "high-vol" | "sector" | "implied-move" | "after-close";
 export type ThemePref = "light" | "dark" | "system";
-export type TabId = "timeline" | "watchlist" | "review" | "settings";
+export type TabId = "timeline" | "watchlist" | "news" | "review" | "settings";
 export type WatchFilter = "all" | "held" | "macro";
 export type SparkRange = "1D" | "1M" | "6M" | "1Y";
 export type PastFilter = "all" | "earnings" | "notes";
 export type NotifyLead = "24h" | "1h" | "both";
 export type MacroSeriesId = "cpi" | "fomc" | "nfp" | "ppi" | "gdp" | "ism";
+export type NewsKind = "target" | "announcement" | "filing" | "coverage";
+export type NewsImpact = "high" | "medium" | "low";
+export type NewsFilter = "all" | "high" | "target" | "announcement" | "today";
 
 export interface Ticker {
   id: string;
@@ -113,6 +116,14 @@ export interface Headline {
   title: string;
   source: string;
   publishedAt: string;
+  url?: string;
+  summary?: string;
+  kind?: NewsKind;
+  impact?: NewsImpact;
+  /** One-line why this would (or would not) move the name. */
+  why?: string;
+  scoredBy?: "heuristic" | "grok" | "fixture";
+  origin?: "fixture" | "live";
 }
 
 export interface JournalEntry {
@@ -157,6 +168,7 @@ export type Sheet =
   | { name: "journal"; eventId: string }
   | { name: "note"; eventId: string }
   | { name: "headlines"; tickerId?: string; macroId?: string }
+  | { name: "article"; id: string }
   | { name: "add" }
   | { name: "csv" }
   | { name: "macro" }
@@ -206,4 +218,5 @@ export interface AppSnapshot {
   recommendations: Record<string, Recommendation>;
   tape: Record<string, TapeMetrics>;
   macroPrints: Record<string, MacroPrint>;
+  newsFetchedAt?: string;
 }

@@ -47,7 +47,7 @@ export function EventRow({
               </span>
             ) : null}
           </span>
-          <span className="mt-0.5 block truncate text-[13px] text-[var(--fg-muted)]">
+          <span suppressHydrationWarning className="mt-0.5 block truncate text-[13px] text-[var(--fg-muted)]">
             {kindLabel(event)}
             {" · "}
             {sessionLabel(event.session)}

@@ -4,6 +4,7 @@ import { eventLabel, nearest, pendingCount } from "@/lib/catalyst/selectors";
 import { useCatalyst, useCurrentScreen } from "@/lib/catalyst/store";
 import { cn } from "@/lib/utils";
 import { EventScreen } from "./event";
+import { ArticleSheet, NewsScreen } from "./news";
 import { HeadlinesSheet } from "./ticker";
 import { JournalSheet } from "./journal";
 import { CatalystMark } from "./mark";
@@ -143,6 +144,8 @@ function PhoneBody() {
             <EventScreen id={screen.id} />
           ) : store.tab === "watchlist" ? (
             <WatchlistScreen />
+          ) : store.tab === "news" ? (
+            <NewsScreen />
           ) : store.tab === "review" ? (
             <ReviewScreen />
           ) : store.tab === "settings" ? (
@@ -153,6 +156,7 @@ function PhoneBody() {
         </div>
         <JournalSheet />
         <HeadlinesSheet />
+        <ArticleSheet />
         <WatchlistSheets />
         {store.banner ? <Banner /> : null}
       </div>
@@ -192,9 +196,12 @@ function StatusBar() {
 function TabBar() {
   const store = useCatalyst();
   const pending = pendingCount(store);
+  const followedIds = new Set(store.tickers.map((t) => t.id));
+  const highNews = store.headlines.filter((h) => h.impact === "high" && h.tickerId && followedIds.has(h.tickerId)).length;
   const items = [
     { id: "timeline" as const, label: "Timeline", icon: TimelineIcon },
     { id: "watchlist" as const, label: "Watchlist", icon: ListIcon },
+    { id: "news" as const, label: "News", icon: NewsIcon, badge: highNews },
     { id: "review" as const, label: "Review", icon: ChartIcon, badge: pending },
     { id: "settings" as const, label: "Settings", icon: GearIcon },
   ];
@@ -275,6 +282,14 @@ function ListIcon({ active }: { active: boolean }) {
       <path d="M5 6H17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
       <path d="M5 11H17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
       <path d="M5 16H13" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+    </svg>
+  );
+}
+function NewsIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
+      <rect x="3.5" y="4.5" width="15" height="13" rx="2" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <path d="M7 8.5H15M7 11.5H15M7 14.5H12" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
     </svg>
   );
 }

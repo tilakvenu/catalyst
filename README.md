@@ -20,7 +20,8 @@ Opens on the Timeline, populated. Demo mode is on by default. No network, no API
 |-----|-------------|
 | Timeline | Day groups, session clock, **Ready to score** on a complete print, empty state via Settings → Reset to empty |
 | Watchlist | Search, All/Held/Macro, swipe Mute/Remove, CSV import, last CPI/FFR print, prints-this-week |
-| Ticker | Day range, mkt cap / P/E / 52w, typical-session vol, spark, next-event, tape (EPS + analysts) |
+| News | Watchlist tape, impact flags (High / Med / Low), Targets / Company / Today filters, **Rank with Grok** |
+| Ticker | Day range, mkt cap / P/E / 52w, typical-session vol, spark, next-event, flagged headlines |
 | Event | Your call first, consensus, headlines, Continue journal |
 | Journal | Direction, conviction, reasoning, invalidation. Incomplete stays Pending |
 | Review | Accuracy, conviction bands (1–2 / 3 / 4–5), Pending with Score vs Complete, tab badge |
@@ -28,19 +29,20 @@ Opens on the Timeline, populated. Demo mode is on by default. No network, no API
 
 First open of the phone: step-mark + **Catalyst** launch overlay, then the tab.
 
-## APIs (live mode only)
+## APIs
 
-Rotation with a 429 cooloff. One dead key does not blank the tape.
+News tape works **without keys**. Rotation with a 429 cooloff. One dead source does not blank the tape.
 
-| Action | Order |
-|--------|--------|
-| Quote | Finnhub → Alpha Vantage → Stooq (no key) |
-| News | Finnhub company-news → NewsAPI |
-| Earnings + calendar | Finnhub → Alpha Vantage |
-| Metrics | Finnhub metric/profile2 → AV OVERVIEW |
-| Macro prints | Finnhub economic calendar → AV series → NY Fed EFFR / BLS |
+| Action | Order | Key? |
+|--------|--------|------|
+| Quote | Finnhub → Alpha Vantage → Stooq | Stooq is free |
+| News tape | Yahoo Finance RSS → Google News RSS → Nasdaq RSS → Seeking Alpha → FreeNewsAPI → Finnhub company-news → NewsAPI → AV NEWS_SENTIMENT | First five: none |
+| Impact rank | Heuristic keywords, then optional **Rank with Grok** | Grok uses the app's xAI key, user-initiated |
+| Earnings + calendar | Finnhub → Alpha Vantage | yes |
+| Metrics | Finnhub metric/profile2 → AV OVERVIEW | yes |
+| Macro prints | Finnhub economic calendar → AV series → NY Fed EFFR / BLS | NY Fed / BLS free |
 
-Keys are entered in Settings and stored on-device. Native uses `native/Catalyst/Secrets.example.swift`.
+Vendor keys (optional) are entered in Settings and stored on-device. Native uses `native/Catalyst/Secrets.example.swift`.
 
 ## Stack
 

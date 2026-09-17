@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ageLabel, countdown, formatPct, formatPrice, formatUsdChange, formatWhen } from "@/lib/catalyst/format";
+import { impactLabel, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
 import { typicalSessionPct } from "@/lib/catalyst/scoring";
 import { entryFor, isUrgent, kindLabel, pastFollowed, upcomingFollowed } from "@/lib/catalyst/selectors";
 import { useCatalyst } from "@/lib/catalyst/store";
@@ -7,7 +8,7 @@ import type { PastFilter, SparkRange } from "@/lib/catalyst/types";
 import { cn } from "@/lib/utils";
 import { Sparkline } from "./charts";
 import { DayRange, MetricsLine, TapeCard } from "./context";
-import { Segmented, TopBar } from "./ui";
+import { Segmented, TopBar, Pill } from "./ui";
 
 export function TickerScreen({ id }: { id: string }) {
   const store = useCatalyst();
@@ -145,16 +146,24 @@ export function TickerScreen({ id }: { id: string }) {
         </div>
         <div className="mt-2 overflow-hidden rounded-[22px]" style={{ background: "var(--bg-card)" }}>
           {headlines.slice(0, 3).map((h, i) => (
-            <div
+            <button
               key={h.id}
-              className="px-3.5 py-3"
+              type="button"
+              onClick={() => store.openSheet({ name: "article", id: h.id })}
+              className="w-full px-3.5 py-3 text-left"
               style={{ boxShadow: i < Math.min(headlines.length, 3) - 1 ? "inset 0 -0.5px 0 var(--hairline)" : undefined }}
             >
-              <p className="text-[15px] font-medium leading-snug">{h.title}</p>
+              <div className="flex items-center gap-1.5">
+                <Pill tone={h.impact === "high" ? "neg" : h.impact === "medium" ? "warn" : "neutral"}>
+                  {impactLabel(h.impact)}
+                </Pill>
+                <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(h.kind)}</span>
+              </div>
+              <p className="mt-1 text-[15px] font-medium leading-snug">{h.title}</p>
               <p className="mt-1 text-[12px] text-[var(--fg-faint)]">
                 {h.source} · {ageLabel(h.publishedAt, store.now)}
               </p>
-            </div>
+            </button>
           ))}
           {headlines.length === 0 ? (
             <p className="px-3.5 py-4 text-[13px] text-[var(--fg-faint)]">No headlines yet.</p>
@@ -220,14 +229,26 @@ export function HeadlinesSheet() {
   return (
     <div className="absolute inset-0 z-40 flex flex-col" style={{ background: "var(--bg)" }}>
       <TopBar title="Headlines" onBack={() => store.closeSheet()} />
-      <div className="min-h-0 flex-1 overflow-y-auto hide-scroll px-4 pb-10">
+      <div className="min-h-0 flex-1 overflow-y-auto hide-scroll px-4 pb-28">
         {list.map((h) => (
-          <article key={h.id} className="border-b py-3" style={{ borderColor: "var(--hairline)" }}>
-            <p className="text-[16px] font-medium leading-snug">{h.title}</p>
+          <button
+            key={h.id}
+            type="button"
+            onClick={() => store.openSheet({ name: "article", id: h.id })}
+            className="w-full border-b py-3 text-left"
+            style={{ borderColor: "var(--hairline)" }}
+          >
+            <div className="flex items-center gap-1.5">
+              <Pill tone={h.impact === "high" ? "neg" : h.impact === "medium" ? "warn" : "neutral"}>
+                {impactLabel(h.impact)}
+              </Pill>
+              <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(h.kind)}</span>
+            </div>
+            <p className="mt-1 text-[16px] font-medium leading-snug">{h.title}</p>
             <p className="mt-1 text-[12px] text-[var(--fg-faint)]">
               {h.source} · {ageLabel(h.publishedAt, store.now)}
             </p>
-          </article>
+          </button>
         ))}
       </div>
     </div>

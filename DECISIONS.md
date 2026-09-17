@@ -9,6 +9,9 @@
 - **Dates in fixtures are relative to `Date.now()`** — “This Week” / “Next Week” / countdowns stay valid whenever the demo is opened.
 - **Live API keys live in localStorage** (Settings), not a committed Secrets.swift analog in the web app. `native/Secrets.example.swift` exists for Xcode. NewsAPI and some market APIs block browser CORS; live mode uses a thin server proxy.
 - **Finnhub `/calendar/earnings` is on the free tier** — confirmed against current Finnhub endpoint lists (quote, profile2, calendar/earnings). Profile is fetched once and persisted; never on screen load.
+- **News tab is a tape, not a clipper** — Yahoo-style watchlist feed with impact flags. High (red) ≈ >2% next-session, Med (amber) 0.5–2%, Low is color. Heuristic first so the screen paints without a model call; **Rank with Grok** is user-initiated and capped at 12 headlines.
+- **Free news before paid keys** — Yahoo Finance RSS, Google News RSS, Nasdaq RSS, Seeking Alpha combined RSS, and FreeNewsAPI.ai need no key. Finnhub / NewsAPI / AV NEWS_SENTIMENT fill gaps when keys are in Settings.
+- **Ticker-relevance over raw Yahoo volume** — Yahoo's symbol RSS is noisy. Collectors take up to 4 items per source, drop Yahoo/Google/FreeNews stories that never mention the symbol or company, then globally dedupe titles. Nasdaq / Seeking Alpha / keyed vendors are trusted.
 - **No related-tickers / sector recommendations** — explicitly rejected in spec.
 - **Spotlight search and CSV import** — spec empty states mention broker CSV; search is required on Watchlist. Implemented as first-class, not stubs.
 - **Status Island** — compact next-event countdown (Dynamic Island analog). Improves “what’s next” without a new screen.

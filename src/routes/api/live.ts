@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { collectWatchlistNews, grokRankHeadlines } from "@/lib/catalyst/news-fetch";
 
 export const Route = createFileRoute("/api/live")({
   server: {
@@ -12,6 +13,8 @@ export const Route = createFileRoute("/api/live")({
           from?: string;
           to?: string;
           keys?: { finnhub?: string; alphaVantage?: string; newsapi?: string };
+          tickers?: { symbol?: string; company?: string; tickerId?: string }[];
+          items?: { id?: string; symbol?: string; title?: string; summary?: string }[];
         } = {};
         try {
           body = (await request.json()) as typeof body;
@@ -29,6 +32,31 @@ export const Route = createFileRoute("/api/live")({
         if (action === "news") {
           const items = await newsRotated(symbol, keys);
           return json({ items });
+        }
+        if (action === "news-tape") {
+          const tickers = (body.tickers ?? [])
+            .map((t) => ({
+              symbol: (t.symbol ?? "").replace(/[^A-Za-z.]/g, "").toUpperCase().slice(0, 8),
+              company: (t.company ?? "").slice(0, 80),
+              tickerId: (t.tickerId ?? "").replace(/[^a-z0-9.-]/gi, "").slice(0, 16).toLowerCase(),
+            }))
+            .filter((t) => t.symbol && t.tickerId)
+            .slice(0, 8);
+          const items = await collectWatchlistNews(tickers, keys);
+          return json({ items });
+        }
+        if (action === "score-news") {
+          const items = (body.items ?? [])
+            .filter((it) => it.id && it.title && it.symbol)
+            .slice(0, 12)
+            .map((it) => ({
+              id: String(it.id).slice(0, 64),
+              symbol: String(it.symbol).replace(/[^A-Za-z.]/g, "").toUpperCase().slice(0, 8),
+              title: String(it.title).slice(0, 240),
+              summary: String(it.summary ?? "").slice(0, 280),
+            }));
+          const ranked = await grokRankHeadlines(items);
+          return json({ items: ranked });
         }
         if (action === "earnings") {
           const items = await earningsRotated(symbol, keys);
@@ -56,7 +84,6 @@ export const Route = createFileRoute("/api/live")({
     },
   },
 });
-
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -77,7 +104,7 @@ async function getJson(url: string, src: string): Promise<unknown | null> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 4500);
   try {
-    const res = await fetch(url, { signal: ctrl.signal, headers: { accept: "application/json" } });
+    const res = await fetch(url, { signal: ctrl.signal, headers: { accept: "application/json", "user-agent": "CatalystJournal/1.0" } });
     if (res.status === 429) {
       trip(src, 90_000);
       return null;
@@ -100,7 +127,7 @@ async function getText(url: string, src: string): Promise<string | null> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 4500);
   try {
-    const res = await fetch(url, { signal: ctrl.signal });
+    const res = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": "CatalystJournal/1.0" } });
     if (res.status === 429) {
       trip(src, 90_000);
       return null;
@@ -214,6 +241,30 @@ async function quoteStooq(symbol: string) {
 }
 
 async function newsRotated(symbol: string, keys: { finnhub?: string; newsapi?: string }) {
+  const yahooXml = await getText(
+    `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(symbol)}&region=US&lang=en-US`,
+    "yahoo-news",
+  );
+  if (yahooXml && yahooXml.includes("<item>")) {
+    const items: { title: string; source: string; publishedAt: string }[] = [];
+    for (const raw of yahooXml.split(/<item[\s>]/i).slice(1)) {
+      const block = raw.split(/<\/item>/i)[0] ?? raw;
+      const title = (block.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "")
+        .replace(/<!\[CDATA\[|\]\]>/g, "")
+        .replace(/<[^>]+>/g, "")
+        .trim();
+      if (!title || title.startsWith("Yahoo")) continue;
+      const pub = (block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)?.[1] ?? "").trim();
+      const d = pub ? new Date(pub) : new Date();
+      items.push({
+        title,
+        source: "Yahoo Finance",
+        publishedAt: Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString(),
+      });
+      if (items.length >= 8) break;
+    }
+    if (items.length) return items;
+  }
   if (keys.finnhub) {
     const to = new Date();
     const from = new Date(to.getTime() - 14 * 86400000);

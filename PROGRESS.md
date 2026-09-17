@@ -21,4 +21,4 @@ If this session is interrupted, say: **“session got interrupted, continue from
 
 ## Next if interrupted
 
-The app is complete. Polish, Xcode port (`native/` + `CLAUDE_HANDOFF.md`), or live API keys. Do not restart from zero.
+News tab (seed 7) is in. Tape + impact flags + Rank with Grok. Do not restart from zero. After QA, commit `tilakvenu/catalyst` and write the SDD/SDS Google Doc.

@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { buildDemoSnapshot, buildEmptySnapshot } from "./fixtures";
 import { isoDateEt, makeSpark } from "./format";
-import { liveCalendar, liveEarnings, liveMacro, liveMetrics, liveNews, liveQuote, liveRecs } from "./live";
+import { decorateHeadline } from "./impact";
+import { liveCalendar, liveEarnings, liveMacro, liveMetrics, liveNews, liveQuote, liveRecs, liveScoreNews, liveWatchlistNews } from "./live";
 import { directionFromMove } from "./session";
 import { SEARCH_UNIVERSE } from "./universe";
 import {
@@ -74,6 +75,9 @@ export interface CatalystState extends AppSnapshot {
   applyPrintScore: (eventId: string) => void;
   refreshLive: (symbol: string, tickerId: string) => Promise<void>;
   scanLive: () => Promise<void>;
+  refreshNews: () => Promise<void>;
+  scoreNews: () => Promise<boolean>;
+  newsStatus: "idle" | "loading" | "scoring" | "error";
 }
 
 function ensureSeed(s: AppSnapshot): AppSnapshot {
@@ -142,6 +146,7 @@ export const useCatalyst = create<CatalystState>()(
         banner: null,
         now: Date.now(),
         hydrated: false,
+        newsStatus: "idle" as const,
 
         setTab: (tab) => set({ tab, stack: [] }),
         push: (s) => set({ stack: [...get().stack, s] }),
@@ -429,7 +434,7 @@ export const useCatalyst = create<CatalystState>()(
               ];
             }
             if (news.length) {
-              const kept = s.headlines.filter((h) => h.tickerId !== tickerId);
+              const kept = s.headlines.filter((h) => h.tickerId !== tickerId || h.origin === "fixture");
               next.headlines = [
                 ...news.map((n, i) => ({
                   id: `live-${tickerId}-${i}`,
@@ -437,6 +442,8 @@ export const useCatalyst = create<CatalystState>()(
                   title: n.title,
                   source: n.source,
                   publishedAt: n.publishedAt,
+                  origin: "live" as const,
+                  ...decorateHeadline(n),
                 })),
                 ...kept,
               ];
@@ -520,6 +527,74 @@ export const useCatalyst = create<CatalystState>()(
 
           const held = get().tickers.filter((t) => t.held).slice(0, 3);
           await Promise.all(held.map((t) => get().refreshLive(t.symbol, t.id)));
+          void get().refreshNews();
+        },
+
+        refreshNews: async () => {
+          const s = get();
+          if (s.newsStatus === "loading") return;
+          const tickers = s.tickers.filter((t) => !t.muted).slice(0, 8);
+          if (!tickers.length) {
+            set({ newsStatus: "idle" });
+            return;
+          }
+          set({ newsStatus: "loading" });
+          try {
+            const items = await liveWatchlistNews(
+              tickers.map((t) => ({ symbol: t.symbol, company: t.company, tickerId: t.id })),
+              s.liveKeys,
+            );
+            if (!items.length) {
+              set({ newsStatus: "idle" });
+              return;
+            }
+            const liveIds = new Set(tickers.map((t) => t.id));
+            const kept = get().headlines.filter((h) => h.origin === "fixture" || (h.tickerId && !liveIds.has(h.tickerId)));
+            set({
+              headlines: [...items, ...kept],
+              newsFetchedAt: new Date().toISOString(),
+              newsStatus: "idle",
+            });
+          } catch {
+            set({ newsStatus: "error" });
+          }
+        },
+
+        scoreNews: async () => {
+          const s = get();
+          if (s.newsStatus === "scoring") return false;
+          const batch = s.headlines
+            .filter((h) => h.tickerId && h.scoredBy !== "grok")
+            .slice(0, 12)
+            .map((h) => ({
+              id: h.id,
+              symbol: s.tickers.find((t) => t.id === h.tickerId)?.symbol ?? "",
+              title: h.title,
+              summary: h.summary,
+            }))
+            .filter((h) => h.symbol);
+          if (!batch.length) return false;
+          set({ newsStatus: "scoring" });
+          try {
+            const ranked = await liveScoreNews(batch);
+            if (!ranked.length) {
+              set({ newsStatus: "idle" });
+              return false;
+            }
+            const byId = new Map(ranked.map((r) => [r.id, r]));
+            set({
+              headlines: get().headlines.map((h) => {
+                const r = byId.get(h.id);
+                if (!r) return h;
+                return { ...h, impact: r.impact, why: r.why, scoredBy: "grok" as const };
+              }),
+              newsStatus: "idle",
+            });
+            return true;
+          } catch {
+            set({ newsStatus: "error" });
+            return false;
+          }
         },
       };
     },
@@ -549,6 +624,7 @@ export const useCatalyst = create<CatalystState>()(
           banner: _b,
           now: _n,
           hydrated: _h,
+          newsStatus: _ns,
           ...rest
         } = s;
         void _t;
@@ -557,6 +633,7 @@ export const useCatalyst = create<CatalystState>()(
         void _b;
         void _n;
         void _h;
+        void _ns;
         const snap: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(rest)) {
           if (typeof v !== "function") snap[k] = v;
@@ -567,10 +644,10 @@ export const useCatalyst = create<CatalystState>()(
         if (!state) return;
         const fixed = ensureSeed(state);
         if (fixed !== state || fixed.seedVersion !== SEED_VERSION) {
-          useCatalyst.setState({ ...fixed, hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "timeline" });
+          useCatalyst.setState({ ...fixed, hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "timeline", newsStatus: "idle" });
           return;
         }
-        useCatalyst.setState({ hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "timeline" });
+        useCatalyst.setState({ hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "timeline", newsStatus: "idle" });
       },
     },
   ),
