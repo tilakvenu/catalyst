@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Catalyst — Software Design Document & Specification</title>
+</head>
+<body style="margin:0;background:#f7f6f2;color:#1c1c1e;font-family:Georgia,'Times New Roman',serif;line-height:1.5;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0c0d0b;color:#eceae4;">
+  <tr>
+    <td style="padding:48px 56px 40px;">
+      <p style="margin:0 0 8px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#c4d4c8;">Private · tilakvenu/catalyst · Seed 7</p>
+      <h1 style="margin:0 0 12px;font-size:42px;line-height:1.1;font-weight:700;letter-spacing:-0.03em;">Catalyst</h1>
+      <p style="margin:0 0 28px;font-size:22px;color:#c4d4c8;">Software Design Document & Software Design Specification</p>
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right:32px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;color:#eceae4;">
+            <strong>Version</strong><br />1.1 · News tape
+          </td>
+          <td style="padding-right:32px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;color:#eceae4;">
+            <strong>Date</strong><br />17 September 2026
+          </td>
+          <td style="padding-right:32px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;color:#eceae4;">
+            <strong>Status</strong><br />Implemented (web sim)
+          </td>
+          <td style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;color:#eceae4;">
+            <strong>Native</strong><br />Swift stubs · not compiled
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div style="padding:40px 56px 72px;max-width:880px;">
+
+<p style="font-size:18px;">Calls. Catalysts. Score. A single-user journal for the events that actually move a name — earnings, CPI, FOMC — plus a Yahoo-style watchlist news tape flagged by how much the story should move the stock. The scoreboard only counts <strong>complete</strong> calls.</p>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:#6e6e73;border-bottom:1px solid #d2d2d7;padding-bottom:8px;">Contents</h2>
+<ol style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:15px;">
+  <li>Purpose and scope (SDD)</li>
+  <li>Product loop and screens</li>
+  <li>Architecture</li>
+  <li>Data model</li>
+  <li>User interface specification</li>
+  <li>News tape and impact ranking</li>
+  <li>API specification (updated)</li>
+  <li>Non-functional requirements</li>
+  <li>Native handoff</li>
+  <li>Design decisions</li>
+  <li>Out of scope</li>
+</ol>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">1. Purpose and scope</h2>
+<p>Catalyst is a personal earnings-and-macro trading journal. The operator follows names and releases, writes a call <em>before</em> the print, and scores it the session after. Incomplete notes never enter accuracy.</p>
+<p>This combined SDD/SDS describes the runnable product: a high-fidelity <strong>iPhone simulation</strong> (iOS 26 Liquid Glass) that ships in the Grok preview, plus SwiftData stubs for a later Xcode port. There is no macOS or Xcode in the build environment, so the web sim is the visual source of truth.</p>
+
+<table cellpadding="8" cellspacing="0" width="100%" style="border-collapse:collapse;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:14px;">
+  <thead>
+    <tr style="background:#1c1c1e;color:#eceae4;">
+      <th align="left">Item</th>
+      <th align="left">Decision</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="background:#fff;"><td>Auth</td><td>Off. No accounts, no sharing.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Database</td><td>Off. Zustand + localStorage (<code>catalyst-v3</code>, seed 7).</td></tr>
+    <tr style="background:#fff;"><td>Users</td><td>Single operator on one device.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Publish</td><td>Not published. Demo journal works offline; live tape needs network, not keys.</td></tr>
+    <tr style="background:#fff;"><td>Repo</td><td>Private GitHub <code>tilakvenu/catalyst</code>.</td></tr>
+  </tbody>
+</table>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">2. Product loop and screens</h2>
+<p><strong>Loop:</strong> Watch tickers / macros → see catalysts and tape → write a call → score it the session after.</p>
+
+<table cellpadding="8" cellspacing="0" width="100%" style="border-collapse:collapse;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:14px;">
+  <thead>
+    <tr style="background:#1c1c1e;color:#eceae4;">
+      <th align="left">Screen</th>
+      <th align="left">Specification</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="background:#fff;"><td>Timeline</td><td>Day groups, NYSE session clock, nearest-first events, Ready-to-score banner when a complete call has a next-session print.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Watchlist</td><td>Search over US equity/ETF universe, All / Held / Macro, swipe Mute / Remove, CSV import, last CPI / FFR / NFP print.</td></tr>
+    <tr style="background:#fff;"><td>News</td><td>Watchlist tape. Color flags by likely price move. Filters: All, High, Targets, Company, Today. Refresh tape. Rank with Grok (user-initiated).</td></tr>
+    <tr style="background:#f2f2f7;"><td>Ticker</td><td>Last / change, day range, mkt cap / P/E / 52-week, typical-session vol, spark (1D–1Y), next event, flagged headlines.</td></tr>
+    <tr style="background:#fff;"><td>Event</td><td>Call first, then consensus, Tape card (last-four EPS + analyst mix), flagged headlines.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Journal</td><td>Direction, conviction 1–5, reasoning, invalidation. Quick note is the same model with fields left nil. Completion is derived, never stored.</td></tr>
+    <tr style="background:#fff;"><td>Review</td><td>Accuracy %, conviction bands (1–2 / 3 / 4–5), Pending with Score vs Complete. Tab badge = pending count.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Settings</td><td>Theme, notify lead, demo / live, vendor keys on-device, reset demo / empty, fire notification.</td></tr>
+  </tbody>
+</table>
+
+<p>Chrome: floating glass tab bar (five tabs), Dynamic Island analog (next-event countdown), launch overlay (step-mark + wordmark, ~1.55s). Sheets: journal, note, headlines, article, add, CSV, macro, search.</p>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">3. Architecture</h2>
+<pre style="background:#1c1c1e;color:#eceae4;padding:16px 18px;font-size:13px;line-height:1.45;font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;">Web (runnable)
+  src/components/catalyst/*     iPhone UI (visual truth)
+  src/lib/catalyst/types.ts     models
+  src/lib/catalyst/store.ts     Zustand + persist
+  src/lib/catalyst/impact.ts    keyword High/Med/Low + kind
+  src/lib/catalyst/news-fetch.ts server collectors + Grok ranker
+  src/routes/api/live.ts        rotation proxy (quotes, tape, calendar)
+
+Native (handoff, not compiled)
+  native/Catalyst/*.swift       SwiftData 1:1 with types.ts
+</pre>
+<p>Views never call vendors. All live traffic goes through <code>POST /api/live</code> with an <code>action</code>. A tripped source (429 / timeout) cools off ~60–90s so one dead vendor does not blank the tape. Auth is off; there is no <code>@/lib/db</code> import and no migrations.</p>
+<p><strong>Stack (web):</strong> TanStack Start, React 19, Tailwind v4, Zustand, Recharts.</p>
+<p><strong>Stack (native target):</strong> SwiftUI, iOS 17+, SwiftData, Swift Charts, UNUserNotificationCenter. Zero third-party packages.</p>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">4. Data model</h2>
+<p>Journal completion is derived from field presence. A quick note is a <code>JournalEntry</code> with conviction and invalidation nil.</p>
+<table cellpadding="8" cellspacing="0" width="100%" style="border-collapse:collapse;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:14px;">
+  <thead>
+    <tr style="background:#1c1c1e;color:#eceae4;">
+      <th align="left">Type</th>
+      <th align="left">Key fields</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="background:#fff;"><td>Ticker</td><td>symbol, company, held, muted, lastPrice, change, changePct</td></tr>
+    <tr style="background:#f2f2f7;"><td>MacroItem</td><td>CPI, FOMC, NFP, PPI, GDP, ISM — first-class, not a fake ticker</td></tr>
+    <tr style="background:#fff;"><td>CatalystEvent</td><td>kind (earnings | macro | product), session (bmo | amc | intraday), confirmed, printMovePct</td></tr>
+    <tr style="background:#f2f2f7;"><td>Headline</td><td>title, source, publishedAt, url, summary, kind (target | announcement | filing | coverage), impact (high | medium | low), why, scoredBy (heuristic | grok | fixture), origin (fixture | live)</td></tr>
+    <tr style="background:#fff;"><td>JournalEntry</td><td>direction, conviction 1–5, reasoning, invalidation, actualMovePct</td></tr>
+    <tr style="background:#f2f2f7;"><td>TapeMetrics</td><td>marketCap, pe, week52, target</td></tr>
+  </tbody>
+</table>
+<p>Seed bump reseeds demo data. Current <code>SEED_VERSION = 7</code>.</p>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">5. User interface specification</h2>
+<p><strong>Theme (Apple HIG, not navy/amber):</strong></p>
+<ul style="font-family:-apple-system,Helvetica,Arial,sans-serif;">
+  <li>Dark: true black <code>#000000</code>, grouped <code>#1C1C1E</code></li>
+  <li>Light: iOS grouped gray <code>#F2F2F7</code></li>
+  <li>Tint: system blue <code>#007AFF</code> / <code>#0A84FF</code> — interactive chrome only, never a canvas wash</li>
+  <li>Semantic green / red for price; orange for estimated / incomplete only</li>
+  <li>Type: SF Pro / system UI. Large titles 34pt bold. Review % is SF Display, not a serif</li>
+  <li>Liquid Glass on chrome only (tab bar, island, sheets). Content cards stay solid</li>
+  <li>Radii concentric: device 54, screen 44, cards 22, sheets 44 top, pills full-round</li>
+</ul>
+<p><strong>Impact colors (reuse existing tokens, no second palette):</strong> High → <code>--color-negative</code> (red rail + pill). Medium → <code>--color-warn</code> (amber). Low → hairline / muted.</p>
+<p>Tap targets on primary News actions are 44px. Filters are a horizontal chip row so five labels never clip on a 393pt phone.</p>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">6. News tape and impact ranking</h2>
+<p>The News tab is a tape, not a clipper. It is the brokerage / Yahoo Finance pattern: everything relevant to followed names today, not only scheduled catalysts.</p>
+<p><strong>Story kinds</strong> (not limited to these): price-target / rating changes, company announcements, SEC filings (8-K, 10-Q, Form 4), same-day coverage, partnerships, guidance, M&A, FDA, management changes.</p>
+<table cellpadding="8" cellspacing="0" width="100%" style="border-collapse:collapse;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:14px;">
+  <thead>
+    <tr style="background:#1c1c1e;color:#eceae4;">
+      <th align="left">Flag</th>
+      <th align="left">Likely next-session move</th>
+      <th align="left">Typical trigger</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="background:#fff;"><td>High (red)</td><td>> ~2%</td><td>PT / upgrade, 8-K, guidance cut/raise, beat/miss, M&A, FDA, CEO/CFO exit</td></tr>
+    <tr style="background:#f2f2f7;"><td>Med (amber)</td><td>~0.5–2%</td><td>Buyback, dividend, product launch, partnership, desk note</td></tr>
+    <tr style="background:#fff;"><td>Low</td><td>< ~0.5%</td><td>Roundup, “stocks to buy”, opinion, color</td></tr>
+  </tbody>
+</table>
+<p><strong>Heuristic first</strong> — keyword classifier in <code>impact.ts</code> so the tape paints with no model call.</p>
+<p><strong>Rank with Grok</strong> — user-initiated, capped at 12 headlines, model <code>grok-4.5</code>, <code>max_tokens</code> 700. Writes <code>impact</code>, <code>why</code>, <code>scoredBy: "grok"</code>. Never runs on page load. Spends the app owner’s xAI quota.</p>
+<p><strong>Collector rules:</strong> up to 8 unmuted tickers, 4 items per source, Yahoo/Google/FreeNews must mention the symbol or company, Nasdaq / Seeking Alpha / keyed vendors are trusted, titles globally deduped, 60-story cap, newest first. Fixture headlines stay when live items arrive.</p>
+<p>Demo mode does not auto-fetch. Refresh tape always can.</p>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">7. API specification (updated)</h2>
+<p>Rotation with a 429 cooloff. One dead source does not blank the tape. Keys stay on-device (Settings). Native analog: <code>native/Catalyst/Secrets.example.swift</code>.</p>
+
+<table cellpadding="8" cellspacing="0" width="100%" style="border-collapse:collapse;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;">
+  <thead>
+    <tr style="background:#1c1c1e;color:#eceae4;">
+      <th align="left">Action</th>
+      <th align="left">Endpoint / order</th>
+      <th align="left">Key?</th>
+      <th align="left">Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="background:#fff;"><td>Quote</td><td>Finnhub → Alpha Vantage → Stooq</td><td>Stooq none</td><td><code>action: quote</code>. Delayed 15 min.</td></tr>
+    <tr style="background:#f2f2f7;"><td>News tape</td><td>Yahoo Finance RSS → Google News RSS → Nasdaq RSS → Seeking Alpha combined RSS → FreeNewsAPI.ai → Finnhub company-news → NewsAPI everything → Alpha Vantage NEWS_SENTIMENT</td><td>First five: none</td><td><code>action: news-tape</code>. User-Agent <code>CatalystJournal/1.0</code>. Yahoo HEAD is 404; GET is 200.</td></tr>
+    <tr style="background:#fff;"><td>Single-name news</td><td>Yahoo RSS → Finnhub → NewsAPI</td><td>Yahoo none</td><td><code>action: news</code>. Used by ticker live refresh.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Impact rank</td><td>Keyword heuristic, then POST xAI <code>/v1/chat/completions</code></td><td>xAI env key</td><td><code>action: score-news</code>. User button only. JSON array of {id, impact, why}.</td></tr>
+    <tr style="background:#fff;"><td>Earnings history</td><td>Finnhub /stock/earnings → AV EARNINGS</td><td>yes</td><td>Last four prints + surprise %.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Recommendations</td><td>Finnhub /stock/recommendation</td><td>Finnhub</td><td>Buy / hold / sell mix.</td></tr>
+    <tr style="background:#fff;"><td>Metrics</td><td>Finnhub metric + profile2 → AV OVERVIEW</td><td>yes</td><td>Mkt cap, P/E, 52-week, target. Fetched once, persisted.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Calendar</td><td>Finnhub /calendar/earnings → AV EARNINGS_CALENDAR</td><td>yes</td><td>Watchlist scan fills estimated events.</td></tr>
+    <tr style="background:#fff;"><td>Macro prints</td><td>Finnhub economic calendar → AV series → NY Fed EFFR (FOMC) / BLS (CPI)</td><td>NY Fed / BLS none</td><td><code>action: macro</code>.</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Free news URLs (no key):</strong></p>
+<ul style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:14px;">
+  <li>Yahoo: <code>https://feeds.finance.yahoo.com/rss/2.0/headline?s={SYM}&region=US&lang=en-US</code></li>
+  <li>Google News: <code>https://news.google.com/rss/search?q={SYM}+{NAME}+stock&hl=en-US&gl=US&ceid=US:en</code></li>
+  <li>Nasdaq: <code>https://www.nasdaq.com/feed/rssoutbound?symbol={SYM}</code></li>
+  <li>Seeking Alpha: <code>https://seekingalpha.com/api/sa/combined/{SYM}.xml</code></li>
+  <li>FreeNewsAPI: <code>https://freenewsapi.ai/v1/search?q=...&lang=en&size=8</code></li>
+</ul>
+<p><strong>Verified live (17 Sep 2026):</strong> Yahoo RSS 200 / 19 NVDA items; Nasdaq 15; Seeking Alpha 30; FreeNewsAPI 200 (no key). Google News RSS answers. SEC company_tickers 403 from this environment — not used.</p>
+<p>Finnhub free: 60 rpm. Alpha Vantage free: ~25/day — protected by cooloff, not extra paid vendors. Typical-session vol is stdev of the 1M spark (no options API on the free tier).</p>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">8. Non-functional requirements</h2>
+<ul style="font-family:-apple-system,Helvetica,Arial,sans-serif;">
+  <li>Preview binds <code>0.0.0.0:8080</code>. Production target is Vercel. No runtime filesystem writes, no secrets in the client bundle.</li>
+  <li>Vendor keys in localStorage only. <code>XAI_API_KEY</code> is server-only.</li>
+  <li>Fetch timeout 4.5s per vendor. Watchlist news capped at 8 names / 60 stories.</li>
+  <li>Hydration: relative fixture times; EventRow timestamps use <code>suppressHydrationWarning</code>.</li>
+  <li>Accessibility: tablist on segmented controls, 44pt primary targets, Dynamic Type via system fonts on native.</li>
+  <li>No related-tickers, no accounts, no push server (local / in-app banner only).</li>
+</ul>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">9. Native handoff</h2>
+<p>Open the repo in Claude Design / Xcode. Read <code>CLAUDE.md</code> first. Visual truth is the web sim. Data truth is <code>src/lib/catalyst/</code>.</p>
+<p>Gate: <code>xcodebuild -scheme Catalyst -destination 'platform=iOS Simulator,name=iPhone 16' build</code>. Until that passes, do not claim a Simulator launch. Headline already carries url, summary, kind, impact, why, scoredBy.</p>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">10. Design decisions</h2>
+<ul style="font-family:-apple-system,Helvetica,Arial,sans-serif;">
+  <li>Web iPhone sim is the runnable product because this environment has no Xcode.</li>
+  <li>Graphite + system blue, not navy + amber. Glass on chrome only.</li>
+  <li>News is a tape with move-based flags, not sentiment.</li>
+  <li>Free RSS before paid keys. Ticker-relevance over raw Yahoo volume.</li>
+  <li>Grok rank is a button, never a page-load, never tick-by-tick.</li>
+  <li>No related-tickers / sector recs (explicitly rejected).</li>
+  <li>Zustand + localStorage stands in for SwiftData; seed-versioned.</li>
+</ul>
+
+<h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">11. Out of scope</h2>
+<ul style="font-family:-apple-system,Helvetica,Arial,sans-serif;">
+  <li>Publishing the site (not requested for this drop).</li>
+  <li>Accounts, cloud sync, multi-user.</li>
+  <li>Real-time tick tape / Level 2 / options implied move.</li>
+  <li>Robinhood connector quotes (available later, not wired).</li>
+  <li>Compiled Xcode target (stubs only).</li>
+</ul>
+
+<p style="margin-top:48px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#6e6e73;">End of document · Catalyst SDD/SDS 1.1 · 17 September 2026</p>
+
+</div>
+</body>
+</html>
