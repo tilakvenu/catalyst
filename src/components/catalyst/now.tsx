@@ -42,7 +42,7 @@ export function NowScreen() {
     <div className="px-4 pb-28 pt-1">
       <header className="mb-4 flex items-start justify-between pt-1">
         <div className="min-w-0">
-          <h1 className="text-[34px] font-bold leading-none tracking-tight">Desk</h1>
+          <h1 className="text-[34px] font-bold leading-none tracking-tight">Catalyst</h1>
           <p suppressHydrationWarning className="mt-1.5 text-[13px] leading-snug text-[var(--fg-muted)]">
             <span className="session-dot" style={{ background: phaseColor(clock.phase) }} />
             <span className="font-medium text-[var(--fg)]">{clock.label}</span>
@@ -53,9 +53,6 @@ export function NowScreen() {
         <div className="mt-1 flex shrink-0 items-center gap-1">
           <HeaderBtn label="Watch" onClick={() => store.push({ name: "names" })}>
             <ListIcon />
-          </HeaderBtn>
-          <HeaderBtn label="Tape" onClick={() => store.push({ name: "news" })}>
-            <NewsIcon />
           </HeaderBtn>
           <HeaderBtn label="Settings" onClick={() => store.push({ name: "settings" })}>
             <GearIcon />
@@ -86,13 +83,15 @@ export function NowScreen() {
               }}
             >
               <p className="text-[14px] font-medium">
-                {pending} {pending === 1 ? "call" : "calls"} unfinished. They cannot score yet.
+                {pending} pending
               </p>
               {oldest ? (
                 <p className="mt-0.5 text-[12px] text-[var(--fg-muted)]">
-                  Continue at {missingFields(oldest)[0] ?? "the next field"}.
+                  Complete lock required to score · continue at {missingFields(oldest)[0] ?? "the next field"}.
                 </p>
-              ) : null}
+              ) : (
+                <p className="mt-0.5 text-[12px] text-[var(--fg-muted)]">Complete lock required to score.</p>
+              )}
             </button>
           ) : null}
 
@@ -266,7 +265,7 @@ function ResultHero({ event }: { event: CatalystEvent }) {
         <p className="mt-3 text-[13px] leading-snug text-[var(--fg-muted)]">
           You said: “{note.invalidation}”
           <span className="mt-1 block text-[12px] text-[var(--fg-faint)]">
-            {note.actualFigure ?? "Manual review needed"} · Invalidation: manual review needed
+            Actual: {note.actualFigure ?? "Figures not in the structured print."} · Manual review needed
           </span>
         </p>
       ) : null}
@@ -413,15 +412,6 @@ function ListIcon() {
       <path d="M5 6H17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <path d="M5 11H17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <path d="M5 16H13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-function NewsIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <rect x="4" y="4.5" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M7 9H15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M7 12.5H12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

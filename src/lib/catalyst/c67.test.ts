@@ -2,6 +2,8 @@ import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { C5_SHA, BUILD_NAME, SCORING_RULE_VERSION } from "./build.ts";
 import { packEvidence, splitEvidence, unpackEvidence, snapshotIds } from "./evidence.ts";
 import { parseGrokRank, GROK_RANK_SYSTEM } from "./grok-rank.ts";
@@ -11,6 +13,10 @@ import { isResolvableAt } from "./session.ts";
 import { isTradingDay, nyParts, upcomingSessionIso } from "./calendar.ts";
 import type { CatalystEvent, Headline, JournalEntry } from "./types.ts";
 import { isEntryComplete } from "./types.ts";
+import { DEFAULT_TAB, TAB_BAR_ITEMS } from "./nav.ts";
+import { dateDotState, heatAlpha } from "./cal-view.ts";
+import { adjustImpactForVol, impactColor, impactLabel } from "./impact.ts";
+import { TabBarView } from "../../components/catalyst/tab-bar.tsx";
 
 const C5 = "ced85b4cbf70fe48949b2e8fbe7b2ca213d7d4e4";
 
@@ -415,5 +421,182 @@ describe("C67 evidence pack", () => {
     assert.equal(rows[0]!.id, "a");
     assert.equal(rows[0]!.title, "Filing");
     assert.equal(rows[0]!.source, "SEC");
+  });
+});
+
+describe("C67 navigation lock", () => {
+  it("TabBar renders exactly catalyst, calendar, tape, record in that order", () => {
+    const html = renderToStaticMarkup(
+      createElement(TabBarView, { active: DEFAULT_TAB, onSelect: () => {} }),
+    );
+    const ids = [...html.matchAll(/data-tab="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(ids, ["catalyst", "calendar", "tape", "record"]);
+    assert.deepEqual(
+      TAB_BAR_ITEMS.map((t) => t.id),
+      ["catalyst", "calendar", "tape", "record"],
+    );
+  });
+
+  it("TabBar renders no badge or numeric count", () => {
+    const html = renderToStaticMarkup(
+      createElement(TabBarView, { active: "catalyst", onSelect: () => {} }),
+    );
+    assert.doesNotMatch(html, /tab-badge|data-badge|badge/);
+    const labels = [...html.matchAll(/<span class="text-\[10px\] font-medium">([^<]*)<\/span>/g)].map((m) => m[1]);
+    for (const label of labels) assert.doesNotMatch(label ?? "", /\d/);
+  });
+
+  it("watch is not a member of the tab set", () => {
+    const html = renderToStaticMarkup(
+      createElement(TabBarView, { active: "catalyst", onSelect: () => {} }),
+    );
+    assert.doesNotMatch(html, /data-tab="watch"/);
+    assert.doesNotMatch(html, />Watch</);
+    assert.equal(
+      TAB_BAR_ITEMS.map((t) => t.id).includes("watch" as never),
+      false,
+    );
+  });
+
+  it("default tab on cold open is catalyst", () => {
+    assert.equal(DEFAULT_TAB, "catalyst");
+    const store = readFileSync(new URL("./store.ts", import.meta.url), "utf8");
+    assert.match(store, /tab: DEFAULT_TAB/);
+  });
+});
+
+describe("C67 calendar", () => {
+  const baseEvent = (startsAt: string): CatalystEvent =>
+    event({ id: "e", tickerId: "nvda", startsAt, session: "amc" });
+
+  it("dot-state function returns the correct color for all five cases", () => {
+    const future = "2026-09-22T16:20:00-04:00";
+    const past = "2026-09-10T16:20:00-04:00";
+    const now = Date.parse("2026-09-19T12:00:00-04:00");
+    const complete = entry({ id: "x", eventId: "e", lockedAt: "2026-09-18T12:00:00.000Z" });
+    assert.equal(dateDotState({ event: baseEvent(future), now }), "needs-call");
+    assert.equal(dateDotState({ event: baseEvent(future), entry: complete, now }), "handled");
+    assert.equal(
+      dateDotState({
+        event: baseEvent(past),
+        entry: { ...complete, actualDirection: "up", actualMovePct: 3.1 },
+        now,
+      }),
+      "called",
+    );
+    assert.equal(
+      dateDotState({
+        event: baseEvent(past),
+        entry: { ...complete, actualDirection: "down", actualMovePct: -2 },
+        now,
+      }),
+      "missed",
+    );
+    assert.equal(dateDotState({ event: baseEvent(past), now }), "pending");
+  });
+
+  it("weekends and calendar.ts holidays are marked non-trading", () => {
+    assert.equal(isTradingDay(Date.parse("2026-09-19T12:00:00-04:00")), false);
+    assert.equal(isTradingDay(Date.parse("2026-09-20T12:00:00-04:00")), false);
+    assert.equal(isTradingDay(Date.parse("2026-04-03T12:00:00-04:00")), false);
+    assert.equal(isTradingDay(Date.parse("2026-09-21T12:00:00-04:00")), true);
+  });
+
+  it("heat alpha steps 0/0.05/0.10/0.16/0.22 for counts 0/1/2/3/4+", () => {
+    assert.equal(heatAlpha(0, true), 0);
+    assert.equal(heatAlpha(1, true), 0.05);
+    assert.equal(heatAlpha(2, true), 0.1);
+    assert.equal(heatAlpha(3, true), 0.16);
+    assert.equal(heatAlpha(4, true), 0.22);
+    assert.equal(heatAlpha(9, true), 0.22);
+  });
+
+  it("a non-trading day receives no heat tint regardless of count", () => {
+    assert.equal(heatAlpha(4, false), 0);
+    assert.equal(heatAlpha(99, false), 0);
+  });
+});
+
+describe("C67 impact", () => {
+  it("no impact label string contains %", () => {
+    assert.equal(impactLabel("high").includes("%"), false);
+    assert.equal(impactLabel("medium").includes("%"), false);
+    assert.equal(impactLabel("low").includes("%"), false);
+  });
+
+  it("vol normalization moves a class by at most one step", () => {
+    const calm = adjustImpactForVol({ base: "low", typical: 0.5, followedTypicals: [1, 1, 1, 1], isMacro: false });
+    const jumpy = adjustImpactForVol({ base: "high", typical: 3, followedTypicals: [1, 1, 1, 1], isMacro: false });
+    assert.equal(calm.impact, "medium");
+    assert.equal(jumpy.impact, "medium");
+    const stillHigh = adjustImpactForVol({
+      base: "high",
+      typical: 0.5,
+      followedTypicals: [1, 1, 1, 1],
+      isMacro: false,
+    });
+    assert.equal(stillHigh.impact, "high");
+  });
+
+  it("normalization is skipped with fewer than 4 followed equities", () => {
+    const r = adjustImpactForVol({ base: "low", typical: 0.2, followedTypicals: [1, 1, 1], isMacro: false });
+    assert.equal(r.impact, "low");
+    assert.equal(r.basis, "keyword");
+  });
+
+  it("macro items are never vol-adjusted", () => {
+    const r = adjustImpactForVol({ base: "low", typical: 0.2, followedTypicals: [1, 1, 1, 1], isMacro: true });
+    assert.equal(r.impact, "low");
+    assert.equal(r.basis, "keyword");
+  });
+
+  it("no impact style resolves to a red or green token", () => {
+    for (const i of ["high", "medium", "low"] as const) {
+      const c = impactColor(i);
+      assert.doesNotMatch(c, /positive|negative|red|green|#30d158|#ff453a|#34c759|#ff3b30/);
+    }
+  });
+});
+
+describe("C67 amendment invariants", () => {
+  it("home screen large title reads Catalyst, not Desk", () => {
+    const now = readFileSync(new URL("../../components/catalyst/now.tsx", import.meta.url), "utf8");
+    assert.match(now, />Catalyst</);
+    assert.doesNotMatch(now, />Desk</);
+  });
+
+  it("Watch is a toolbar push from Catalyst, not a tab", () => {
+    const now = readFileSync(new URL("../../components/catalyst/now.tsx", import.meta.url), "utf8");
+    assert.match(now, /label="Watch"/);
+    assert.match(now, /name: "names"/);
+    assert.equal(TAB_BAR_ITEMS.map((t) => t.id).includes("watch" as never), false);
+  });
+
+  it("launch animation matches the A3 timing table", () => {
+    const app = readFileSync(new URL("../../components/catalyst/app.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../../styles.css", import.meta.url), "utf8");
+    assert.match(app, /sessionStorage\.getItem\("cat-launch"\)/);
+    assert.match(app, /const total = reduce \? 400 : 2100/);
+    assert.match(app, /navigator\.webdriver/);
+    assert.match(css, /catLaunchDraw 500ms cubic-bezier\(0\.65, 0, 0\.35, 1\) 200ms/);
+    assert.match(css, /catLaunchZoom 420ms cubic-bezier\(0\.7, 0, 0\.3, 1\) 1500ms/);
+    assert.match(css, /scale\(34\)/);
+    assert.match(css, /cat-launch-reduce/);
+  });
+
+  it("git diff on styles.css adds only --impact-high and --impact-med among color tokens", () => {
+    const diff = execSync(`git diff ${C5} -- src/styles.css`, { encoding: "utf8" });
+    const addedVars = [...diff.matchAll(/^\+.*(--[a-z0-9-]+)/gm)].map((m) => m[1]!);
+    const colorish = addedVars.filter(
+      (v) => v.startsWith("--color-") || v.startsWith("--radius-") || v.startsWith("--font-") || v.startsWith("--impact"),
+    );
+    for (const v of colorish) {
+      assert.ok(v === "--impact-high" || v === "--impact-med", v);
+    }
+  });
+
+  it("DEFERRED.md records empirical impact from historical prints", () => {
+    const def = readFileSync(new URL("../../../DEFERRED.md", import.meta.url), "utf8");
+    assert.match(def, /empirical impact from historical prints/i);
   });
 });

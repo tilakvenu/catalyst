@@ -105,7 +105,13 @@ export function impactCaption(impact?: NewsImpact): string {
   return impactLabel(impact);
 }
 
-/** Impact is magnitude, not direction — never red. */
+/** One hue, three intensities. Never red or green. */
+export function impactColor(impact?: NewsImpact): string {
+  if (impact === "high") return "var(--impact-high)";
+  if (impact === "medium") return "var(--impact-med)";
+  return "var(--fg-faint)";
+}
+
 export function impactTone(_impact?: NewsImpact): "accent" | "neutral" {
   void _impact;
   return "neutral";
@@ -119,4 +125,70 @@ export function impactRulePx(impact?: NewsImpact): number {
 
 export function impactWeight(impact?: NewsImpact): "semibold" | "normal" {
   return impact === "high" ? "semibold" : "normal";
+}
+
+export type ImpactBasis = "keyword" | "keyword+vol-adjusted";
+
+function promote(i: NewsImpact): NewsImpact {
+  if (i === "low") return "medium";
+  if (i === "medium") return "high";
+  return "high";
+}
+
+function demote(i: NewsImpact): NewsImpact {
+  if (i === "high") return "medium";
+  if (i === "medium") return "low";
+  return "low";
+}
+
+/**
+ * After keyword class, shift at most one step vs the name's typical session
+ * relative to the median of followed equities. Macros never adjust.
+ */
+export function adjustImpactForVol(args: {
+  base: NewsImpact;
+  typical: number | null;
+  followedTypicals: number[];
+  isMacro: boolean;
+}): { impact: NewsImpact; basis: ImpactBasis; note?: string } {
+  if (args.isMacro) return { impact: args.base, basis: "keyword" };
+  if (args.followedTypicals.length < 4 || args.typical == null) {
+    return { impact: args.base, basis: "keyword" };
+  }
+  const sorted = [...args.followedTypicals].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)]!;
+  if (!median) return { impact: args.base, basis: "keyword" };
+  const r = args.typical / median;
+  if (r <= 0.7) {
+    return {
+      impact: promote(args.base),
+      basis: "keyword+vol-adjusted",
+      note: "This name usually moves less than your others.",
+    };
+  }
+  if (r >= 1.4) {
+    return {
+      impact: demote(args.base),
+      basis: "keyword+vol-adjusted",
+      note: "This name usually moves more than your others.",
+    };
+  }
+  return { impact: args.base, basis: "keyword" };
+}
+
+export function resolveDisplayImpact(args: {
+  base: NewsImpact;
+  why?: string;
+  typical: number | null;
+  followedTypicals: number[];
+  isMacro: boolean;
+}): { impact: NewsImpact; why: string; basis: ImpactBasis } {
+  const adj = adjustImpactForVol({
+    base: args.base,
+    typical: args.typical,
+    followedTypicals: args.followedTypicals,
+    isMacro: args.isMacro,
+  });
+  const why = [args.why, adj.note].filter(Boolean).join(" ");
+  return { impact: adj.impact, why, basis: adj.basis };
 }

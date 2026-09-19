@@ -120,11 +120,35 @@ export function upcomingGrouped(
   }));
 }
 
-export function typicalFor(s: StoreSlice, event: CatalystEvent, callTarget?: string): number | null {
-  const tickerId = event.tickerId ?? callTarget;
+export function typicalForTicker(s: StoreSlice, tickerId?: string): number | null {
   if (!tickerId || !s.sparks) return null;
   const dates = s.events.filter((e) => e.tickerId === tickerId).map((e) => e.startsAt);
   return typicalSessionPct(s.sparks[tickerId]?.["1M"] ?? [], dates, s.now);
+}
+
+export function typicalFor(s: StoreSlice, event: CatalystEvent, callTarget?: string): number | null {
+  return typicalForTicker(s, event.tickerId ?? callTarget);
+}
+
+export function followedEquityTypicals(s: StoreSlice): number[] {
+  const out: number[] = [];
+  for (const t of s.tickers) {
+    const v = typicalForTicker(s, t.id);
+    if (v != null) out.push(v);
+  }
+  return out;
+}
+
+export function observedMoveForHeadline(s: StoreSlice, h: Headline): number | null {
+  const related = s.events.filter(
+    (e) => (h.tickerId && e.tickerId === h.tickerId) || (h.macroId && e.macroId === h.macroId),
+  );
+  for (const e of related) {
+    const note = entryFor(s, e.id);
+    if (note?.actualMovePct != null) return note.actualMovePct;
+    if (e.printMovePct != null && s.now >= new Date(e.startsAt).getTime()) return e.printMovePct;
+  }
+  return null;
 }
 
 export function suggestedPrint(

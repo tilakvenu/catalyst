@@ -7,13 +7,14 @@ import { EventScreen } from "./event";
 import { ArticleSheet, NewsScreen } from "./news";
 import { HeadlinesSheet } from "./ticker";
 import { JournalSheet } from "./journal";
-import { CatalystMark } from "./mark";
 import { NowScreen } from "./now";
 import { ReviewScreen } from "./review";
 import { SettingsScreen } from "./settings";
 import { SimulationScreen } from "./simulation";
 import { TickerScreen } from "./ticker";
 import { WatchlistScreen, WatchlistSheets } from "./watchlist";
+import { CalendarScreen } from "./calendar-tab";
+import { TabBarView } from "./tab-bar";
 
 export function CatalystApp() {
   const store = useCatalyst();
@@ -82,10 +83,14 @@ function DeviceFrame({ children, theme }: { children: React.ReactNode; theme: "l
 function LaunchOverlay({ onDone }: { onDone: () => void }) {
   const done = useRef(onDone);
   done.current = onDone;
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
+  const arcRef = useRef<SVGCircleElement>(null);
+
   useEffect(() => {
     let shown = false;
     try {
-      shown = sessionStorage.getItem("cat-launch-whoosh") === "1";
+      shown = sessionStorage.getItem("cat-launch") === "1";
     } catch {
       /* private mode */
     }
@@ -98,30 +103,77 @@ function LaunchOverlay({ onDone }: { onDone: () => void }) {
     } catch {
       /* ignore */
     }
-    if ((shown || reduce || automated) && !force) {
+    if (automated && !force) {
       try {
-        sessionStorage.setItem("cat-launch-whoosh", "1");
+        sessionStorage.setItem("cat-launch", "1");
       } catch {
         /* ignore */
       }
       done.current();
       return;
     }
+    if (shown && !force) {
+      done.current();
+      return;
+    }
+
+    const overlay = overlayRef.current;
+    const path = pathRef.current;
+    const arc = arcRef.current;
+    if (path) {
+      const L = path.getTotalLength();
+      path.style.strokeDasharray = String(L);
+      path.style.strokeDashoffset = String(L);
+    }
+    if (arc) {
+      const r = Number(arc.getAttribute("r") ?? 16.9);
+      const C = 2 * Math.PI * r;
+      arc.style.strokeDasharray = `${C * 0.89} ${C * 0.11}`;
+      arc.style.strokeDashoffset = String(C);
+    }
+
+    const total = reduce ? 400 : 2100;
+    overlay?.classList.add(reduce ? "cat-launch-reduce" : "cat-launch-run");
+
     const t = window.setTimeout(() => {
       try {
-        sessionStorage.setItem("cat-launch-whoosh", "1");
+        sessionStorage.setItem("cat-launch", "1");
       } catch {
         /* ignore */
       }
       done.current();
-    }, 2200);
+    }, total);
     return () => window.clearTimeout(t);
   }, []);
 
   return (
-    <div className="cat-launch" role="img" aria-label="Catalyst">
-      <div className="cat-launch-mark-wrap">
-        <CatalystMark size={120} className="cat-launch-mark" />
+    <div ref={overlayRef} className="cat-launch" role="img" aria-label="Catalyst" data-launch="1">
+      <div className="cat-launch-svg-wrap">
+        <svg viewBox="0 0 64 64" width="120" height="120" fill="none" aria-hidden>
+          <g className="cat-launch-group">
+            <path
+              ref={pathRef}
+              className="cat-launch-path"
+              d="M6 52H28V44.5 M28 23.5V16H58"
+              stroke="#ffffff"
+              strokeWidth="5"
+              strokeLinecap="square"
+              strokeLinejoin="miter"
+            />
+            <circle className="cat-launch-bead" cx="28" cy="34" r="6.5" fill="#0a84ff" />
+            <circle
+              ref={arcRef}
+              className="cat-launch-arc"
+              cx="28"
+              cy="34"
+              r={6.5 * 2.6}
+              fill="none"
+              stroke="#0a84ff"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </g>
+        </svg>
       </div>
       <p className="cat-launch-word wordmark mt-5 text-[22px]">Catalyst</p>
     </div>
@@ -153,6 +205,10 @@ function PhoneBody() {
             <WatchlistScreen />
           ) : onTab && store.tab === "record" ? (
             <ReviewScreen />
+          ) : onTab && store.tab === "calendar" ? (
+            <CalendarScreen />
+          ) : onTab && store.tab === "tape" ? (
+            <NewsScreen />
           ) : (
             <NowScreen />
           )}
@@ -214,32 +270,7 @@ function Banner() {
 
 function TabBar() {
   const store = useCatalyst();
-  const items = [
-    { id: "now" as const, label: "Desk", icon: NowIcon },
-    { id: "record" as const, label: "Record", icon: ChartIcon },
-  ];
-  return (
-    <nav className="pointer-events-none absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
-      <div className="pointer-events-auto sheen glass flex h-[62px] w-full max-w-[280px] items-stretch rounded-full px-1.5">
-        {items.map((it) => {
-          const on = store.tab === it.id;
-          const Icon = it.icon;
-          return (
-            <button
-              key={it.id}
-              type="button"
-              onClick={() => store.setTab(it.id)}
-              className="flex flex-1 flex-col items-center justify-center gap-0.5"
-              style={{ color: on ? "var(--color-accent)" : "var(--tab-idle)" }}
-            >
-              <Icon active={on} />
-              <span className="text-[10px] font-medium">{it.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
+  return <TabBarView active={store.tab} onSelect={(id) => store.setTab(id)} />;
 }
 
 function Signal() {
@@ -258,27 +289,6 @@ function Battery() {
       <rect x="0.5" y="0.5" width="20" height="11" rx="3" stroke="currentColor" />
       <rect x="2" y="2" width="15" height="8" rx="1.5" fill="currentColor" />
       <rect x="21.5" y="3.5" width="2" height="5" rx="0.6" fill="currentColor" />
-    </svg>
-  );
-}
-function NowIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <circle cx="11" cy="11" r="7.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
-      <circle cx="11" cy="11" r="2.25" fill="currentColor" />
-    </svg>
-  );
-}
-function ChartIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <path
-        d="M4 16L8.5 11.5L12 14L18 7"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }

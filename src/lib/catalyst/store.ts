@@ -9,6 +9,7 @@ import { lockCall as commitLock, currentDraft, eventHasStarted, mutateLocked } f
 import { tryResolve } from "./resolve";
 import { applyScenario, advanceScenario, type ScenarioId } from "./scenarios";
 import { buildSimulationSnapshot } from "./simulation";
+import { DEFAULT_TAB } from "./nav";
 import { SEARCH_UNIVERSE } from "./universe";
 import {
   SEED_VERSION,
@@ -165,7 +166,7 @@ export const useCatalyst = create<CatalystState>()(
       const demo = buildDemoSnapshot();
       return {
         ...demo,
-        tab: "now",
+        tab: DEFAULT_TAB,
         stack: [],
         sheet: null,
         banner: null,
@@ -175,7 +176,7 @@ export const useCatalyst = create<CatalystState>()(
         newsStatus: "idle" as const,
 
         setTab: (tab) => set({ tab, stack: [] }),
-        goDesk: () => set({ tab: "now", stack: [] }),
+        goDesk: () => set({ tab: DEFAULT_TAB, stack: [] }),
         push: (s) => set({ stack: [...get().stack, s] }),
         pop: () => set({ stack: get().stack.slice(0, -1) }),
         openSheet: (sheet) => set({ sheet }),
@@ -205,7 +206,7 @@ export const useCatalyst = create<CatalystState>()(
             ...fresh,
             theme: get().theme,
             liveKeys: get().liveKeys,
-            tab: "now",
+            tab: DEFAULT_TAB,
             stack: [],
             sheet: null,
             lastScore: null,
@@ -221,7 +222,7 @@ export const useCatalyst = create<CatalystState>()(
             ...empty,
             theme: get().theme,
             liveKeys: get().liveKeys,
-            tab: "now",
+            tab: DEFAULT_TAB,
             stack: [],
             sheet: null,
             lastScore: null,
@@ -499,12 +500,12 @@ export const useCatalyst = create<CatalystState>()(
         },
         runScenario: (id) => {
           const patch = applyScenario(get(), id);
-          set(patch);
+          set(patch as Partial<CatalystState>);
           get().autoResolve();
         },
         advanceScenario: () => {
           const patch = advanceScenario(get());
-          set(patch);
+          set(patch as Partial<CatalystState>);
           get().autoResolve();
         },
         loadSimulation: () => {
@@ -773,10 +774,10 @@ export const useCatalyst = create<CatalystState>()(
         if (!state) return;
         const fixed = ensureSeed(state);
         if (fixed !== state || fixed.seedVersion !== SEED_VERSION) {
-          useCatalyst.setState({ ...fixed, hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "now", lastScore: null, newsStatus: "idle" });
+          useCatalyst.setState({ ...fixed, hydrated: true, now: Date.now(), stack: [], sheet: null, tab: DEFAULT_TAB, lastScore: null, newsStatus: "idle" });
           return;
         }
-        useCatalyst.setState({ hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "now", lastScore: null, newsStatus: "idle" });
+        useCatalyst.setState({ hydrated: true, now: Date.now(), stack: [], sheet: null, tab: DEFAULT_TAB, lastScore: null, newsStatus: "idle" });
       },
     },
   ),

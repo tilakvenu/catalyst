@@ -98,6 +98,8 @@
   --color-positive: #30d158;
   --color-negative: #ff453a;
   --color-warn: #ff9f0a;
+  --impact-high: #bf5af2;
+  --impact-med: color-mix(in srgb, #bf5af2 55%, #8e8e93);
 }
 
 [data-theme="light"] {
@@ -120,6 +122,8 @@
   --color-positive: #34c759;
   --color-negative: #ff3b30;
   --color-warn: #ff9500;
+  --impact-high: #af52de;
+  --impact-med: color-mix(in srgb, #af52de 55%, #6e6e73);
 }
 
 .cat-app {
@@ -338,19 +342,95 @@
   overflow: hidden;
   background: #000000;
   color: #f5f5f7;
-  animation: catLaunchOverlay 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.cat-launch-mark-wrap {
+.cat-launch-svg-wrap {
   transform-origin: 43.75% 53.125%;
   will-change: transform;
-  animation: catLaunchWhoosh 2.15s forwards;
+}
+
+.cat-launch-group {
+  transform-origin: 28px 34px;
+  transform-box: fill-box;
+}
+
+.cat-launch-path {
+  fill: none;
+}
+
+.cat-launch-bead {
+  transform-origin: 28px 34px;
+  transform-box: fill-box;
+  transform: scale(0);
+  opacity: 0;
+}
+
+.cat-launch-arc {
+  opacity: 0;
+  transform-origin: 28px 34px;
+  transform-box: fill-box;
+  transform: rotate(-90deg);
 }
 
 .cat-launch-word {
   position: relative;
   z-index: 1;
-  animation: catLaunchWord 2.15s forwards;
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.cat-launch-run .cat-launch-path {
+  animation:
+    catLaunchDraw 500ms cubic-bezier(0.65, 0, 0.35, 1) 200ms forwards,
+    catLaunchPathOut 260ms linear 1500ms forwards;
+}
+
+.cat-launch-run .cat-launch-bead {
+  animation:
+    catLaunchBeadIn 180ms cubic-bezier(0.34, 1.56, 0.64, 1) 700ms forwards,
+    catLaunchBeadFade 120ms linear 700ms forwards,
+    catLaunchBeadSettle 140ms cubic-bezier(0.33, 1, 0.68, 1) 880ms forwards;
+}
+
+.cat-launch-run .cat-launch-word {
+  animation:
+    catLaunchWordIn 300ms cubic-bezier(0.33, 1, 0.68, 1) 760ms forwards,
+    catLaunchWordOut 200ms linear 1500ms forwards;
+}
+
+.cat-launch-run .cat-launch-arc {
+  animation:
+    catLaunchArcDraw 420ms cubic-bezier(0.4, 0, 0.2, 1) 1100ms forwards,
+    catLaunchArcIn 80ms linear 1100ms forwards,
+    catLaunchArcOut 220ms linear 1400ms forwards;
+}
+
+.cat-launch-run .cat-launch-svg-wrap {
+  animation: catLaunchZoom 420ms cubic-bezier(0.7, 0, 0.3, 1) 1500ms forwards;
+}
+
+.cat-launch-run {
+  animation:
+    catLaunchBg 160ms linear 1900ms forwards,
+    catLaunchOut 140ms linear 1960ms forwards;
+}
+
+.cat-launch-reduce .cat-launch-path {
+  stroke-dashoffset: 0 !important;
+}
+
+.cat-launch-reduce .cat-launch-bead {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.cat-launch-reduce .cat-launch-word {
+  opacity: 1;
+  transform: none;
+}
+
+.cat-launch-reduce .cat-launch-arc {
+  display: none;
 }
 
 .tab-badge {
@@ -379,86 +459,57 @@
   vertical-align: 1px;
 }
 
-@keyframes catLaunchWhoosh {
-  0% {
-    opacity: 0;
-    transform: scale(0.88);
-    filter: blur(8px);
-    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  18% {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0);
-    animation-timing-function: linear;
-  }
-  48% {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0);
-    animation-timing-function: cubic-bezier(0.55, 0, 0.92, 0.12);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(78);
-    filter: blur(0);
-  }
+@keyframes catLaunchDraw {
+  to { stroke-dashoffset: 0; }
 }
-
-@keyframes catLaunchWord {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-    letter-spacing: 0.16em;
-    filter: blur(6px);
-    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  16% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  30% {
-    opacity: 1;
-    transform: translateY(0);
-    letter-spacing: -0.02em;
-    filter: blur(0);
-    animation-timing-function: linear;
-  }
-  48% {
-    opacity: 1;
-    transform: translateY(0);
-    animation-timing-function: cubic-bezier(0.4, 0, 1, 0.2);
-  }
-  58% {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.96);
-    filter: blur(4px);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
+@keyframes catLaunchPathOut {
+  to { opacity: 0; }
 }
-
-@keyframes catLaunchOverlay {
-  0%,
-  78% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    pointer-events: none;
-  }
+@keyframes catLaunchBeadIn {
+  from { transform: scale(0); }
+  to { transform: scale(1.18); }
+}
+@keyframes catLaunchBeadFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes catLaunchBeadSettle {
+  from { transform: scale(1.18); }
+  to { transform: scale(1); }
+}
+@keyframes catLaunchWordIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes catLaunchWordOut {
+  to { opacity: 0; }
+}
+@keyframes catLaunchArcDraw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes catLaunchArcIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes catLaunchArcOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes catLaunchZoom {
+  from { transform: scale(1); }
+  to { transform: scale(34); }
+}
+@keyframes catLaunchBg {
+  from { background: #0a84ff; }
+  to { background: #ffffff; }
+}
+@keyframes catLaunchOut {
+  from { opacity: 1; }
+  to { opacity: 0; pointer-events: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cat-launch,
-  .cat-launch-mark-wrap,
-  .cat-launch-word {
+  .cat-launch-run {
     animation: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    transform: none !important;
-    letter-spacing: inherit !important;
   }
 }

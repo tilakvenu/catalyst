@@ -12,3 +12,4 @@ Not in this drop. Do not implement on `versionC67` unless the brief is reopened.
 - Structured invalidation evaluator (wrong-if is displayed, not auto-judged FIRED/DID NOT FIRE)
 - Push notification server (`UNUserNotificationCenter` analog stays local/debug)
 - Related-tickers / sector recommendations (explicitly rejected)
+- Empirical impact from historical prints: record impact class against the realized next-session move, then show the actual distribution per class once enough observations exist. Prototype has no history to train on.

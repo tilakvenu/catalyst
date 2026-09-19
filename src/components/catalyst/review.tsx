@@ -308,7 +308,7 @@ export function ReviewScreen() {
             body={EMPTY_COPY.reviewBody}
             actions={
               pendingAll.length === 0 ? (
-                <PrimaryButton onClick={() => store.setTab("now")}>See what’s next</PrimaryButton>
+                <PrimaryButton onClick={() => store.setTab("catalyst")}>See what’s next</PrimaryButton>
               ) : undefined
             }
           />

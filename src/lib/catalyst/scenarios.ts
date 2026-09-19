@@ -1,6 +1,6 @@
 import { packEvidence } from "./evidence.ts";
 import { SCORING_RULE_VERSION } from "./build.ts";
-import type { AppSnapshot, Headline, JournalEntry, Screen, TabId } from "./types.ts";
+import type { AppSnapshot, Headline, JournalEntry, Screen, Sheet, TabId } from "./types.ts";
 
 export type ScenarioId = "A" | "B" | "C";
 
@@ -8,8 +8,8 @@ type Live = AppSnapshot & {
   now: number;
   stack: Screen[];
   tab: TabId;
-  sheet: null;
-  lastScore: null;
+  sheet: Sheet | null;
+  lastScore: unknown;
 };
 
 /** Interactive demo flows. Mutates in-memory store; does not add schema fields. */
@@ -53,7 +53,7 @@ export function applyScenario(state: Live, id: ScenarioId): Partial<Live> {
       headlines: [...s.headlines.filter((h) => h.id !== after.id), after],
       entries: [...s.entries.filter((e) => e.eventId !== "nvda-earn"), entry],
       stack: [{ name: "event", id: "nvda-earn" }],
-      tab: "now",
+      tab: "catalyst",
       sheet: null,
       lastScore: null,
     };
@@ -82,7 +82,7 @@ export function applyScenario(state: Live, id: ScenarioId): Partial<Live> {
       now: lockMs + 3600000,
       entries: [...s.entries.filter((e) => e.eventId !== "cpi-soon"), entry],
       stack: [{ name: "event", id: "cpi-soon" }],
-      tab: "now",
+      tab: "catalyst",
       sheet: null,
       lastScore: null,
     };
@@ -128,7 +128,7 @@ export function advanceScenario(state: Live): Partial<Live> {
     return {
       now: resolveAt,
       events: s.events.map((e) => (e.id === "nvda-earn" ? { ...e, printMovePct: 3.7 } : e)),
-      tab: "now",
+      tab: "catalyst",
       stack: [],
     };
   }
@@ -138,7 +138,7 @@ export function advanceScenario(state: Live): Partial<Live> {
       now: resolveAt,
       events: s.events.map((e) => (e.id === "cpi-soon" ? { ...e, printMovePct: -1.6 } : e)),
       tickers: s.tickers.map((t) => (t.id === "qqq" ? { ...t, changePct: -1.6, change: -7.7 } : t)),
-      tab: "now",
+      tab: "catalyst",
       stack: [],
     };
   }

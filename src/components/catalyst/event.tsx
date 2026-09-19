@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { splitEvidence } from "@/lib/catalyst/evidence";
 import { ageLabel, countdown, firstSentence, formatPct, formatTime, formatWhen, impactLabel, sessionLabel } from "@/lib/catalyst/format";
-import { impactLabel as newsImpactLabel, impactRulePx, impactWeight, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
+import { impactColor, impactLabel as newsImpactLabel, impactRulePx, impactWeight, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
 import { EventBead } from "./mark";
 import { flatBandPct } from "@/lib/catalyst/scoring";
 import { entryFor, eventLabel, isUrgent, kindLabel, lastSimilarEvent, suggestedPrint, typicalFor } from "@/lib/catalyst/selectors";
@@ -257,8 +257,7 @@ export function EventScreen({ id }: { id: string }) {
                     className="mt-1 shrink-0 rounded-full"
                     style={{
                       width: impactRulePx(h.impact),
-                      background: "var(--fg)",
-                      opacity: h.impact === "high" ? 0.85 : h.impact === "medium" ? 0.45 : 0.22,
+                      background: impactColor(h.impact),
                       minHeight: 36,
                     }}
                   />
@@ -268,7 +267,7 @@ export function EventScreen({ id }: { id: string }) {
                         className="text-[11px]"
                         style={{
                           fontWeight: impactWeight(h.impact) === "semibold" ? 600 : 400,
-                          color: h.impact === "low" ? "var(--fg-faint)" : "var(--fg)",
+                          color: impactColor(h.impact),
                         }}
                       >
                         {newsImpactLabel(h.impact)}
@@ -317,10 +316,10 @@ function ResolvedBlock({
       {note.invalidation ? (
         <div className="mt-3 rounded-[14px] px-3 py-2.5" style={{ background: "var(--bg-elevated)" }}>
           <p className="text-[11px] uppercase tracking-wide text-[var(--fg-faint)]">You said</p>
-          <p className="mt-0.5 text-[14px] leading-snug">Wrong if {note.invalidation}</p>
+          <p className="mt-0.5 text-[14px] leading-snug">“{note.invalidation}”</p>
           <p className="mt-2 text-[11px] uppercase tracking-wide text-[var(--fg-faint)]">Actual</p>
           <p className="mt-0.5 text-[14px] leading-snug">{note.actualFigure ?? "Figures not in the structured print."}</p>
-          <p className="mt-2 text-[12px] font-semibold text-[var(--fg-muted)]">Invalidation: manual review needed</p>
+          <p className="mt-2 text-[12px] text-[var(--fg-muted)]">Manual review needed</p>
         </div>
       ) : null}
     </div>

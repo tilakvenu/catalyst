@@ -70,7 +70,7 @@ export function TimelineScreen() {
           body={EMPTY_COPY.timelineBody}
           actions={
             <>
-              <PrimaryButton onClick={() => store.setTab("names")}>Add your first ticker</PrimaryButton>
+              <PrimaryButton onClick={() => store.push({ name: "names" })}>Add your first ticker</PrimaryButton>
               <SecondaryButton onClick={() => store.openSheet({ name: "csv" })}>
                 Or import from a broker CSV
               </SecondaryButton>

@@ -117,7 +117,7 @@ export function buildSimulationSnapshot(now = Date.now()): { snapshot: AppSnapsh
         id: `sim-h-${eventId}-k`,
         tickerId: name.id,
         title: `${name.id.toUpperCase()} street note before the print`,
-        source: "Desk",
+        source: "Street",
         publishedAt: new Date(now - (daysAgo + 2) * 86400000).toISOString(),
         firstSeenAt: new Date(now - (daysAgo + 2) * 86400000).toISOString(),
         impact: "medium",

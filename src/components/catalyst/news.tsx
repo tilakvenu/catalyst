@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ageLabel, formatPct } from "@/lib/catalyst/format";
-import { impactLabel, impactRulePx, impactWeight, kindLabel } from "@/lib/catalyst/impact";
-import { tickerById, upcomingFollowed } from "@/lib/catalyst/selectors";
+import { impactColor, impactLabel, impactRulePx, impactWeight, kindLabel, resolveDisplayImpact } from "@/lib/catalyst/impact";
+import { followedEquityTypicals, observedMoveForHeadline, tickerById, typicalForTicker, upcomingFollowed } from "@/lib/catalyst/selectors";
 import { useCatalyst, type CatalystState } from "@/lib/catalyst/store";
 import type { Headline, NewsImpact } from "@/lib/catalyst/types";
 import { EMPTY_COPY } from "@/lib/catalyst/fixtures";
@@ -27,6 +27,17 @@ export function NewsScreen() {
     if (stale && store.tickers.length) void store.refreshNews();
   }, [store.tickers.length, store.demoMode]);
 
+  const typicals = followedEquityTypicals(store);
+
+  const displayOf = (h: Headline) =>
+    resolveDisplayImpact({
+      base: h.impact ?? "low",
+      why: h.why,
+      typical: typicalForTicker(store, h.tickerId),
+      followedTypicals: typicals,
+      isMacro: Boolean(h.macroId) && !h.tickerId,
+    });
+
   const followed = useMemo(() => {
     const ids = new Set(store.tickers.map((t) => t.id));
     const macros = new Set(store.macros.map((m) => m.id));
@@ -41,18 +52,21 @@ export function NewsScreen() {
   const list = followed.filter((h) => {
     if (filter === "today") return new Date(h.publishedAt).getTime() >= startOfDay.getTime();
     if (filter === "all") return true;
-    return h.impact === filter;
+    return displayOf(h).impact === filter;
   });
 
   const byTier = TIERS.map((t) => ({
     ...t,
-    items: list.filter((h) => (h.impact ?? "low") === t.id),
+    items: list.filter((h) => displayOf(h).impact === t.id),
   })).filter((t) => t.items.length);
 
-  const material = followed.filter((h) => h.impact === "high" || h.impact === "medium");
+  const material = followed.filter((h) => {
+    const i = displayOf(h).impact;
+    return i === "high" || i === "medium";
+  });
 
   return (
-    <div className="px-4 pb-10 pt-1">
+    <div className={cn("px-4 pt-1", canPop ? "pb-10" : "pb-28")}>
       {canPop ? (
         <div className="-mx-2 mb-1">
           <TopBar title="Tape" onBack={() => store.pop()} />
@@ -181,14 +195,19 @@ export function NewsScreen() {
                         <span className="num text-[13px] font-medium">{g.printValue}</span>
                       ) : null}
                     </button>
-                    {g.items.map((h, i) => (
+                    {g.items.map((h, i) => {
+                      const shown = displayOf(h);
+                      return (
                       <NewsRow
                         key={h.id}
                         headline={h}
+                        impact={shown.impact}
+                        why={shown.why}
                         last={i === g.items.length - 1}
                         onOpen={() => store.openSheet({ name: "article", id: h.id })}
                       />
-                    ))}
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -239,13 +258,18 @@ function NewsRow({
   headline,
   last,
   onOpen,
+  impact,
+  why,
 }: {
   headline: Headline;
   last: boolean;
   onOpen: () => void;
+  impact: NewsImpact;
+  why: string;
 }) {
   const store = useCatalyst();
-  const weight = impactWeight(headline.impact);
+  const weight = impactWeight(impact);
+  const observed = observedMoveForHeadline(store, headline);
   return (
     <button
       type="button"
@@ -255,29 +279,35 @@ function NewsRow({
     >
       <span
         className="mt-1 shrink-0 rounded-full"
+        data-impact-rail={impact}
         style={{
-          width: impactRulePx(headline.impact),
+          width: impactRulePx(impact),
           minHeight: 40,
-          background: "var(--fg)",
-          opacity: headline.impact === "high" ? 0.85 : headline.impact === "medium" ? 0.45 : 0.22,
+          background: impactColor(impact),
         }}
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span
             className="text-[11px] tracking-wide"
+            data-impact-label={impact}
             style={{
               fontWeight: weight === "semibold" ? 600 : 400,
-              color: headline.impact === "low" ? "var(--fg-faint)" : "var(--fg)",
+              color: impactColor(impact),
             }}
           >
-            {impactLabel(headline.impact)}
+            {impactLabel(impact)}
           </span>
           <span className="text-[11px] text-[var(--fg-faint)]">{kindLabel(headline.kind)}</span>
         </div>
         <p className="mt-1 text-[15px] font-medium leading-snug">{headline.title}</p>
-        {headline.why ? (
-          <p className="mt-1 text-[12px] leading-snug text-[var(--fg-muted)]">{headline.why}</p>
+        {why ? (
+          <p className="mt-1 text-[12px] leading-snug text-[var(--fg-muted)]">{why}</p>
+        ) : null}
+        {observed != null ? (
+          <p className="mt-1 text-[12px] text-[var(--fg-muted)]">
+            Observed next session: {formatPct(observed)}
+          </p>
         ) : null}
         <p className="mt-1 text-[12px] text-[var(--fg-faint)]">
           {headline.source} · {ageLabel(headline.publishedAt, store.now)}
@@ -305,7 +335,7 @@ export function ArticleSheet() {
             className="text-[12px]"
             style={{
               fontWeight: impactWeight(h.impact) === "semibold" ? 600 : 400,
-              color: h.impact === "low" ? "var(--fg-faint)" : "var(--fg)",
+              color: impactColor(h.impact),
             }}
           >
             {impactLabel(h.impact)}
