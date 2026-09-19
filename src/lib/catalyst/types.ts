@@ -1,4 +1,4 @@
-export const SEED_VERSION = 8;
+export const SEED_VERSION = 9;
 
 export type Direction = "up" | "down" | "flat";
 export type Sentiment = "bullish" | "bearish" | "none";

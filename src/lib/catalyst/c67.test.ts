@@ -8,6 +8,7 @@ import { parseGrokRank, GROK_RANK_SYSTEM } from "./grok-rank.ts";
 import { canLock, lockCall, mutateLocked, scoredVersion } from "./lock.ts";
 import { classifyMove, FLAT_BAND_MULTIPLE, isCalibrationScored, isPending, isScored, isUnresolvable } from "./scoring.ts";
 import { isResolvableAt } from "./session.ts";
+import { isTradingDay, nyParts, upcomingSessionIso } from "./calendar.ts";
 import type { CatalystEvent, Headline, JournalEntry } from "./types.ts";
 import { isEntryComplete } from "./types.ts";
 
@@ -276,6 +277,32 @@ describe("C67 scoring", () => {
     const bmo = "2026-09-22T08:00:00-04:00";
     assert.equal(isResolvableAt(bmo, "bmo", Date.parse("2026-09-22T10:00:00-04:00")), false);
     assert.equal(isResolvableAt(bmo, "bmo", Date.parse("2026-09-22T16:05:00-04:00")), true);
+  });
+
+  it("Friday AMC is not resolvable on Saturday — next session is Monday", () => {
+    const amc = "2026-09-18T16:20:00-04:00";
+    assert.equal(isResolvableAt(amc, "amc", Date.parse("2026-09-19T16:05:00-04:00")), false);
+    assert.equal(isResolvableAt(amc, "amc", Date.parse("2026-09-21T16:05:00-04:00")), true);
+  });
+
+  it("Thursday AMC before Good Friday 2026 resolves Monday, not Friday", () => {
+    const amc = "2026-04-02T16:20:00-04:00";
+    assert.equal(isTradingDay(Date.parse("2026-04-03T12:00:00-04:00")), false);
+    assert.equal(isResolvableAt(amc, "amc", Date.parse("2026-04-03T16:05:00-04:00")), false);
+    assert.equal(isResolvableAt(amc, "amc", Date.parse("2026-04-06T10:00:00-04:00")), false);
+    assert.equal(isResolvableAt(amc, "amc", Date.parse("2026-04-06T16:05:00-04:00")), true);
+  });
+
+  it("a Saturday clock does not mint a BMO CPI print on the weekend", () => {
+    const sat = Date.parse("2026-09-19T04:52:00-04:00");
+    const iso = upcomingSessionIso(sat, "bmo", 2 * 3600000);
+    const ms = Date.parse(iso);
+    assert.equal(isTradingDay(ms), true);
+    const p = nyParts(ms);
+    assert.notEqual(p.weekday, "Sat");
+    assert.notEqual(p.weekday, "Sun");
+    assert.equal(p.hour, 8);
+    assert.equal(p.minute, 30);
   });
 
   it("entries without scoringRuleVersion are excluded from calibration scoring", () => {

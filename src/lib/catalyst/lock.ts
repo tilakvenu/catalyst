@@ -80,13 +80,14 @@ export function lockCall(args: {
   const snapshot = packEvidence(eventHeadlines(args.headlines, args.event));
   const lockedAt = new Date(args.now).toISOString();
 
-  if (args.existing?.lockedAt && eventHasStarted(args.event, args.now)) {
+  if (args.existing?.lockedAt) {
     const revision: JournalEntry = {
       ...merged,
       id: newId("e"),
       lockedAt,
-      evidenceSnapshot: snapshot,
+      evidenceSnapshot: snapshot.length ? snapshot : args.existing.evidenceSnapshot ?? snapshot,
       scoringRuleVersion: SCORING_RULE_VERSION,
+      state: undefined,
     };
     return { ok: true, entry: revision, previous: args.existing };
   }
@@ -128,7 +129,7 @@ export function mutateLocked(args: {
   now: number;
   headlines: Headline[];
 }): { current: JournalEntry; revision?: JournalEntry } {
-  if (args.current.lockedAt && eventHasStarted(args.event, args.now)) {
+  if (args.current.lockedAt) {
     const revision: JournalEntry = {
       ...args.current,
       ...args.patch,
@@ -136,20 +137,13 @@ export function mutateLocked(args: {
       eventId: args.event.id,
       updatedAt: new Date(args.now).toISOString(),
     };
+    if (!eventHasStarted(args.event, args.now) && isEntryComplete(revision)) {
+      revision.lockedAt = new Date(args.now).toISOString();
+      revision.evidenceSnapshot = packEvidence(eventHeadlines(args.headlines, args.event));
+      revision.scoringRuleVersion = SCORING_RULE_VERSION;
+      revision.state = undefined;
+    }
     return { current: args.current, revision };
-  }
-  if (args.current.lockedAt && isEntryComplete({ ...args.current, ...args.patch } as JournalEntry)) {
-    const snapshot = packEvidence(eventHeadlines(args.headlines, args.event));
-    return {
-      current: {
-        ...args.current,
-        ...args.patch,
-        lockedAt: new Date(args.now).toISOString(),
-        evidenceSnapshot: snapshot,
-        scoringRuleVersion: SCORING_RULE_VERSION,
-        updatedAt: new Date(args.now).toISOString(),
-      },
-    };
   }
   return {
     current: {
