@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { EMPTY_COPY } from "@/lib/catalyst/fixtures";
-import { ageLabel, countdown, formatPct, formatWhen } from "@/lib/catalyst/format";
-import { impactCaption, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
+import { ageLabel, countdown, firstSentence, formatPct, formatWhen } from "@/lib/catalyst/format";
+import { impactCaption, impactTone, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
 import { typicalSessionPct } from "@/lib/catalyst/scoring";
 import { marketClock } from "@/lib/catalyst/session";
 import {
@@ -9,9 +9,11 @@ import {
   eventLabel,
   isEntryComplete,
   kindLabel,
+  lastSimilarEvent,
   nearest,
   needsCall,
   deskReadyToScore,
+  setupHeadline,
   suggestedPrint,
   thisWeek,
 } from "@/lib/catalyst/selectors";
@@ -120,9 +122,11 @@ function deskBriefing(
     const note = entryFor(store, next.id);
     const { kicker } = eventLabel(store, next);
     const tape = high ? ` · ${high} high` : "";
+    const street = next.consensus?.[0];
+    const streetBit = street ? ` · street ${street.consensus}` : "";
     if (note && isEntryComplete(note)) return `${kicker} is locked.${tape}`;
     if (note?.direction) return `${kicker} is a draft. Finish it.`;
-    return `${kicker} ${countdown(next.startsAt, store.now)}.`;
+    return `${kicker} ${countdown(next.startsAt, store.now)}${streetBit}.`;
   }
   if (open) return `${open} still open this week.`;
   if (high) return `${high} high on the tape.`;
@@ -301,6 +305,9 @@ function CallHero({ event }: { event: CatalystEvent }) {
   const showPad = !complete || editing;
   const typical = event.tickerId ? typicalSessionPct(store.sparks[event.tickerId]?.["1M"] ?? []) : null;
   const street = event.consensus?.slice(0, 3) ?? [];
+  const last = lastSimilarEvent(store, event);
+  const lastNote = last ? entryFor(store, last.id) : undefined;
+  const setup = setupHeadline(store.headlines, event);
 
   return (
     <div className="rounded-[28px] p-5" style={{ background: "var(--bg-card)" }}>
@@ -336,6 +343,27 @@ function CallHero({ event }: { event: CatalystEvent }) {
       ) : null}
       {event.consensusSource ? (
         <p className="mt-1 text-[11px] text-[var(--fg-faint)]">{event.consensusSource}</p>
+      ) : null}
+      {last && lastNote?.actualMovePct != null ? (
+        <p className="mt-3 text-[13px] leading-snug text-[var(--fg-muted)]">
+          Last {last.title}
+          <span className={cn("num ml-1.5 font-semibold", lastNote.actualMovePct >= 0 ? "pos" : "neg")}>
+            {formatPct(lastNote.actualMovePct)}
+          </span>
+          {lastNote.actualFigure ? (
+            <span className="mt-0.5 block text-[12px]">{firstSentence(lastNote.actualFigure)}</span>
+          ) : null}
+        </p>
+      ) : null}
+      {setup ? (
+        <button
+          type="button"
+          onClick={() => store.openSheet({ name: "article", id: setup.id })}
+          className="mt-3 flex w-full items-center gap-2 text-left"
+        >
+          <Pill tone={impactTone(setup.impact)}>{impactCaption(setup.impact)}</Pill>
+          <span className="min-w-0 flex-1 truncate text-[13px]">{setup.title}</span>
+        </button>
       ) : null}
 
       {showPad ? (
@@ -443,6 +471,9 @@ function HighTape({ items }: { items: Headline[] }) {
                   <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(h.kind)}</span>
                 </span>
                 <span className="mt-1 block text-[15px] font-medium leading-snug">{h.title}</span>
+                {h.why ? (
+                  <span className="mt-1 block text-[12px] leading-snug text-[var(--fg-muted)]">{h.why}</span>
+                ) : null}
                 <span className="mt-1 block text-[12px] text-[var(--fg-faint)]">
                   {h.source} · {ageLabel(h.publishedAt, store.now)}
                 </span>

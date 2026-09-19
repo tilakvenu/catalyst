@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import { ageLabel, countdown, formatPct, formatWhen, impactLabel, sessionLabel } from "@/lib/catalyst/format";
+import { ageLabel, countdown, firstSentence, formatPct, formatWhen, impactLabel, sessionLabel } from "@/lib/catalyst/format";
 import { impactCaption as newsImpactLabel, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
 import { typicalSessionPct } from "@/lib/catalyst/scoring";
-import { entryFor, eventLabel, isUrgent, kindLabel, suggestedPrint } from "@/lib/catalyst/selectors";
+import { entryFor, eventLabel, isUrgent, kindLabel, lastSimilarEvent, suggestedPrint } from "@/lib/catalyst/selectors";
 import { isEntryComplete } from "@/lib/catalyst/types";
 import { useCatalyst } from "@/lib/catalyst/store";
 import { TapeCard } from "./context";
@@ -34,6 +34,8 @@ export function EventScreen({ id }: { id: string }) {
   const ready = suggestedPrint(store, event);
   const complete = note ? isEntryComplete(note) : false;
   const typical = event.tickerId ? typicalSessionPct(store.sparks[event.tickerId]?.["1M"] ?? []) : null;
+  const last = lastSimilarEvent(store, event);
+  const lastNote = last ? entryFor(store, last.id) : undefined;
 
   return (
     <div className="flex h-full flex-col">
@@ -78,6 +80,18 @@ export function EventScreen({ id }: { id: string }) {
         </div>
 
         <h1 className="mt-3 text-[22px] font-semibold leading-tight text-balance">{event.title}</h1>
+
+        {last && lastNote?.actualMovePct != null ? (
+          <p className="mt-3 text-[13px] leading-snug text-[var(--fg-muted)]">
+            Last {last.title}
+            <span className={lastNote.actualMovePct >= 0 ? "pos num ml-1.5 font-semibold" : "neg num ml-1.5 font-semibold"}>
+              {formatPct(lastNote.actualMovePct)}
+            </span>
+            {lastNote.actualFigure ? (
+              <span className="mt-0.5 block">{firstSentence(lastNote.actualFigure)}</span>
+            ) : null}
+          </p>
+        ) : null}
 
         {ready ? (
           <div className="mt-4 rounded-[22px] p-4" style={{ background: "var(--bg-card)" }}>

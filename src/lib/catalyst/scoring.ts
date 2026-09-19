@@ -89,3 +89,18 @@ export function convictionBands(scored: JournalEntry[]): ConvictionBand[] {
     })
     .filter((b) => b.n > 0);
 }
+
+/** Average |next-session move| when the call was right vs wrong. */
+export function capturedMove(scored: JournalEntry[]): {
+  hitAvg: number | null;
+  missAvg: number | null;
+} {
+  const absAvg = (rows: JournalEntry[]) => {
+    const xs = rows.map((e) => e.actualMovePct).filter((n): n is number => n != null);
+    if (!xs.length) return null;
+    return xs.reduce((a, n) => a + Math.abs(n), 0) / xs.length;
+  };
+  const hits = scored.filter((e) => e.direction && e.actualDirection && e.direction === e.actualDirection);
+  const misses = scored.filter((e) => e.direction && e.actualDirection && e.direction !== e.actualDirection);
+  return { hitAvg: absAvg(hits), missAvg: absAvg(misses) };
+}

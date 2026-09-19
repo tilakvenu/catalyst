@@ -18,10 +18,10 @@ Opens on **Now**, populated. Demo mode is on by default. No network, no API keys
 
 | Surface | What to try |
 |---------|-------------|
-| Now | Next print with **Up / Down / Flat**, street numbers, typical session |
+| Now | Next print with **Up / Down / Flat**, street numbers, last print, typical session |
 | Names | Search, All/Held/Macro, high-story line on a name |
-| News | Watchlist tape. **High · >2% / Med · 0.5–2% / Low**. Rank with Grok |
-| Record | Accuracy, conviction bands, Pending with Score vs Complete |
+| News | Tape grouped by name. **High · >2% / Med · 0.5–2% / Low**. Rank with Grok |
+| Record | Accuracy, captured move, conviction bands, Pending with Score vs Complete |
 | Ticker | Quote, spark, next event, flagged headlines |
 | Event | Your call first. Write / lock |
 | Journal | Direction, conviction 1–5, why, wrong-if. Drafts stay Pending |

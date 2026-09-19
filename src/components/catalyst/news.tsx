@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { ageLabel } from "@/lib/catalyst/format";
+import { ageLabel, formatPct } from "@/lib/catalyst/format";
 import { impactCaption, impactTone, kindLabel } from "@/lib/catalyst/impact";
-import { tickerById } from "@/lib/catalyst/selectors";
-import { useCatalyst } from "@/lib/catalyst/store";
+import { tickerById, upcomingFollowed } from "@/lib/catalyst/selectors";
+import { useCatalyst, type CatalystState } from "@/lib/catalyst/store";
 import type { Headline, NewsFilter, NewsImpact } from "@/lib/catalyst/types";
 import { EMPTY_COPY } from "@/lib/catalyst/fixtures";
 import { EmptyState, Pill, PrimaryButton, SecondaryButton, TopBar } from "./ui";
+import { cn } from "@/lib/utils";
 
 export function NewsScreen() {
   const store = useCatalyst();
@@ -145,14 +146,42 @@ export function NewsScreen() {
           }
         />
       ) : (
-        <div className="mt-3 overflow-hidden rounded-[22px]" style={{ background: "var(--bg-card)" }}>
-          {list.map((h, i) => (
-            <NewsRow
-              key={h.id}
-              headline={h}
-              last={i === list.length - 1}
-              onOpen={() => store.openSheet({ name: "article", id: h.id })}
-            />
+        <div className="mt-3 flex flex-col gap-3">
+          {groupTape(list, store).map((g) => (
+            <div key={g.key} className="overflow-hidden rounded-[22px]" style={{ background: "var(--bg-card)" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (g.tickerId) store.push({ name: "ticker", id: g.tickerId });
+                  else if (g.macroId) {
+                    const ev = upcomingFollowed(store).find((e) => e.macroId === g.macroId);
+                    if (ev) store.push({ name: "event", id: ev.id });
+                  }
+                }}
+                className="flex w-full items-baseline justify-between gap-3 px-3.5 py-3 text-left"
+                style={{ boxShadow: "inset 0 -0.5px 0 var(--hairline)" }}
+              >
+                <span>
+                  <span className="text-[16px] font-semibold">{g.kicker}</span>
+                  <span className="ml-2 text-[12px] text-[var(--fg-muted)]">{g.countLine}</span>
+                </span>
+                {g.changePct != null ? (
+                  <span className={cn("num text-[13px] font-medium", g.changePct >= 0 ? "pos" : "neg")}>
+                    {formatPct(g.changePct)}
+                  </span>
+                ) : g.printValue ? (
+                  <span className="num text-[13px] font-medium">{g.printValue}</span>
+                ) : null}
+              </button>
+              {g.items.map((h, i) => (
+                <NewsRow
+                  key={h.id}
+                  headline={h}
+                  last={i === g.items.length - 1}
+                  onOpen={() => store.openSheet({ name: "article", id: h.id })}
+                />
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -165,6 +194,54 @@ export function NewsScreen() {
   );
 }
 
+function groupTape(list: Headline[], store: CatalystState) {
+  const order: string[] = [];
+  const map = new Map<string, Headline[]>();
+  for (const h of list) {
+    const key = h.tickerId ? `t:${h.tickerId}` : h.macroId ? `m:${h.macroId}` : "other";
+    if (!map.has(key)) {
+      map.set(key, []);
+      order.push(key);
+    }
+    map.get(key)!.push(h);
+  }
+  const groups = order.map((key) => {
+    const items = map.get(key)!;
+    const tickerId = key.startsWith("t:") ? key.slice(2) : undefined;
+    const macroId = key.startsWith("m:") ? key.slice(2) : undefined;
+    const ticker = tickerId ? store.tickers.find((t) => t.id === tickerId) : undefined;
+    const macro = macroId ? store.macros.find((m) => m.id === macroId) : undefined;
+    const high = items.filter((h) => h.impact === "high").length;
+    const med = items.filter((h) => h.impact === "medium").length;
+    const low = items.filter((h) => h.impact === "low").length;
+    const countLine = [
+      high ? `${high} High` : null,
+      med ? `${med} Med` : null,
+      low ? `${low} Low` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    return {
+      key,
+      kicker: ticker?.symbol ?? macro?.shortName ?? "—",
+      tickerId,
+      macroId,
+      changePct: ticker?.changePct,
+      printValue: macroId ? store.macroPrints[macroId]?.value : undefined,
+      countLine,
+      high,
+      items,
+    };
+  });
+  groups.sort((a, b) => {
+    if (b.high !== a.high) return b.high - a.high;
+    const aTime = +new Date(a.items[0]?.publishedAt ?? 0);
+    const bTime = +new Date(b.items[0]?.publishedAt ?? 0);
+    return bTime - aTime;
+  });
+  return groups;
+}
+
 function NewsRow({
   headline,
   last,
@@ -175,8 +252,6 @@ function NewsRow({
   onOpen: () => void;
 }) {
   const store = useCatalyst();
-  const ticker = tickerById(store, headline.tickerId);
-  const kicker = ticker?.symbol ?? store.macros.find((m) => m.id === headline.macroId)?.shortName ?? "—";
   return (
     <button
       type="button"
@@ -187,7 +262,6 @@ function NewsRow({
       <ImpactRail impact={headline.impact} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[12px] font-semibold tracking-wide">{kicker}</span>
           <Pill tone={impactTone(headline.impact)}>{impactCaption(headline.impact)}</Pill>
           <span className="text-[11px] text-[var(--fg-faint)]">{kindLabel(headline.kind)}</span>
         </div>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { EMPTY_COPY } from "@/lib/catalyst/fixtures";
 import { formatPct, formatWhen } from "@/lib/catalyst/format";
-import { convictionBands, rollingAccuracy } from "@/lib/catalyst/scoring";
+import { convictionBands, capturedMove, rollingAccuracy } from "@/lib/catalyst/scoring";
 import { eventLabel, isPending, isScored, kindLabel, missingFields, suggestedPrint } from "@/lib/catalyst/selectors";
 import { useCatalyst } from "@/lib/catalyst/store";
 import type { JournalEntry } from "@/lib/catalyst/types";
@@ -42,6 +42,7 @@ export function ReviewScreen() {
   const pct = scored.length ? Math.round((hits.length / scored.length) * 100) : 0;
   const series = rollingAccuracy(scored, 5);
   const bands = convictionBands(scored);
+  const captured = capturedMove(scored);
   const chips: { id: string; label: string; clear: () => void }[] = [];
   if (tickerF !== "all") {
     const t = store.tickers.find((x) => x.id === tickerF);
@@ -71,6 +72,12 @@ export function ReviewScreen() {
         <p className="num text-[14px] text-[var(--fg-muted)]">
           {hits.length} of {scored.length} scored calls
         </p>
+        {captured.hitAvg != null ? (
+          <p className="mt-2 text-[13px] leading-snug text-[var(--fg-muted)]">
+            When you called it, the tape moved {captured.hitAvg.toFixed(1)}% on average
+            {captured.missAvg != null ? ` · ${captured.missAvg.toFixed(1)}% when you missed` : ""}
+          </p>
+        ) : null}
         {series.length >= 2 ? (
           <div className="mt-2">
             <AccuracyChart points={series} />

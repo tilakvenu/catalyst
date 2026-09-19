@@ -23,7 +23,7 @@ Until that passes, say so. Do not claim a Simulator launch if you could not run 
 
 ## Screens already specified
 
-Now, Names, News, Record (tabs). Settings is a push. Ticker, Event, Journal. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style tape with High / Med / Low impact flags sized to next-session move. Launch zooms into the blue bead. Prior IAs: `pre-consumer-redesign` (five tabs), `three-tabs`, `desk` (no tabs), `pre-C5` (three tabs + whoosh).
+Now, Names, News, Record (tabs). Settings is a push. Ticker, Event, Journal. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style tape grouped by name, with High / Med / Low impact flags sized to next-session move. Launch zooms into the blue bead. Prior IAs: `pre-consumer-redesign` (five tabs), `three-tabs`, `desk` (no tabs), `pre-C5` (three tabs + whoosh). C5 is this drop.
 
 ## Design deltas from the original spec (intentional)
 

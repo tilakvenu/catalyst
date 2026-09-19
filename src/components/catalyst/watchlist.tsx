@@ -290,6 +290,9 @@ function MacroRow({
   const swipe = useReveal(open, onToggle, onOpen);
   const next = upcomingFollowed(store).find((e) => e.macroId === item.id);
   const print = store.macroPrints[item.id];
+  const highStory = store.headlines
+    .filter((h) => h.macroId === item.id && h.impact === "high")
+    .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt))[0];
   return (
     <div className="relative overflow-hidden rounded-[22px]">
       <div className="absolute inset-y-0 right-0 flex" style={{ width: 168 }}>
@@ -328,6 +331,11 @@ function MacroRow({
           <span className="mt-1 block text-[12px] text-[var(--fg-faint)]">
             {next ? `${next.title} · ${countdown(next.startsAt, store.now)}` : "No upcoming event"}
           </span>
+          {highStory ? (
+            <span className="mt-1 block truncate text-[12px]" style={{ color: "var(--color-negative)" }}>
+              High · {highStory.title}
+            </span>
+          ) : null}
         </span>
         <span className="text-right">
           {print ? (

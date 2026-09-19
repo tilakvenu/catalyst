@@ -1,6 +1,14 @@
 import { dayHeading, hoursUntil, inNextWeek, inThisWeek, startOfNyDay } from "./format";
 import { isPending, isScored } from "./scoring";
-import { isEntryComplete, missingFields, type CatalystEvent, type JournalEntry, type MacroItem, type Ticker } from "./types";
+import {
+  isEntryComplete,
+  missingFields,
+  type CatalystEvent,
+  type Headline,
+  type JournalEntry,
+  type MacroItem,
+  type Ticker,
+} from "./types";
 
 export interface StoreSlice {
   tickers: Ticker[];
@@ -153,6 +161,32 @@ export function recordSummary(s: StoreSlice): {
     scored: scored.length,
     pending: pendingCount(s),
   };
+}
+
+/** Most recent past print for the same name. */
+export function lastSimilarEvent(s: StoreSlice, event: CatalystEvent): CatalystEvent | undefined {
+  return pastFollowed(s).find((e) => {
+    if (e.id === event.id) return false;
+    if (event.tickerId) return e.tickerId === event.tickerId;
+    if (event.macroId) return e.macroId === event.macroId;
+    return false;
+  });
+}
+
+/** Highest-impact recent headline for the name this print belongs to. */
+export function setupHeadline(headlines: Headline[], event: CatalystEvent): Headline | undefined {
+  const rank = { high: 0, medium: 1, low: 2 } as const;
+  return headlines
+    .filter((h) =>
+      event.tickerId
+        ? h.tickerId === event.tickerId
+        : Boolean(event.macroId && h.macroId === event.macroId),
+    )
+    .sort((a, b) => {
+      const d = (rank[a.impact ?? "low"] ?? 2) - (rank[b.impact ?? "low"] ?? 2);
+      if (d !== 0) return d;
+      return +new Date(b.publishedAt) - +new Date(a.publishedAt);
+    })[0];
 }
 
 export { isEntryComplete, isPending, isScored, missingFields };

@@ -189,3 +189,10 @@ export function isoDateEt(now = Date.now(), offsetDays = 0): string {
   const d = new Date(now + offsetDays * 86400000);
   return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 }
+
+/** First sentence of a print recap, for compact last-print lines. */
+export function firstSentence(s: string): string {
+  const t = s.trim();
+  const m = t.match(/^[^.!?]+[.!?]?/);
+  return (m ? m[0] : t).trim();
+}
