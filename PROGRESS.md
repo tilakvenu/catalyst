@@ -27,12 +27,13 @@ If this session is interrupted, say: **“session got interrupted, continue from
 
 ## Next if interrupted
 
-1. Keep P0 green: `node --experimental-strip-types --test src/lib/catalyst/c67.test.ts`
-2. Do not start new P1/P2 until typecheck/build/browser QA on the calendar + two-tab Desk.
-3. Then remaining P0 polish (package test already wired) → P1 surfaces that are still thin → P2 sim/bead/scenarios already present as WIP.
+1. Amendment A: four tabs Catalyst / Calendar / Tape / Record. Watch is a push.
+2. A0 closed: vitest 25 passed; pre-event re-lock tests added.
+3. Next: A1–A9 (nav, Catalyst rename, launch table, calendar tab, tape tab, impact violet+vol, remaining P1).
 4. Commit cadence: WIP every ~10 min on `versionC67`. No squash, no rebase, no publish.
 
 ## Log
 
 - 2026-09-19: `7a6d835` C67 WIP Desk/Record nav, target picker, impact semantics. Tagged `c67-checkpoint-0`.
-- 2026-09-19: trading calendar helper, fixture session stamps, lock revision on every re-lock, DEFERRED.md, c67 tests in npm test.
+- 2026-09-19: `3516ce1` trading calendar, lock revisions, DEFERRED.md.
+- 2026-09-19: A0 — ported c67.test.ts to vitest (25 passed); pre-event re-lock + final scored-version tests. | next: A1 four tabs.

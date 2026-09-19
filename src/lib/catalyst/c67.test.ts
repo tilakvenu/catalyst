@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -76,15 +76,9 @@ describe("C67 schema budget", () => {
 
 describe("C67 vendors", () => {
   it("introduces no new vendor hostname in src/", () => {
-    const hosts = execSync(
-      `git grep -hE 'https?://[a-zA-Z0-9.-]+' -- src || true`,
-      { encoding: "utf8" },
-    );
+    const hosts = execSync(`git grep -hE 'https?://[a-zA-Z0-9.-]+' -- src || true`, { encoding: "utf8" });
     const c5 = execSync(`git grep -hE 'https?://[a-zA-Z0-9.-]+' ${C5} -- src || true`, { encoding: "utf8" });
-    const grab = (s: string) =>
-      new Set(
-        [...s.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)].map((m) => m[1]!),
-      );
+    const grab = (s: string) => new Set([...s.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)].map((m) => m[1]!));
     const extra = [...grab(hosts)].filter((h) => !grab(c5).has(h));
     const allow = new Set(["api.x.ai", "auth.grok.me", "grok.com", "grok.me"]);
     for (const h of extra) {
@@ -94,15 +88,21 @@ describe("C67 vendors", () => {
 });
 
 describe("C67 visual tokens", () => {
-  it("does not change color tokens, radii, or type-scale in styles.css vs C5", () => {
+  it("does not change color tokens, radii, or type-scale in styles.css vs C5 except --impact-high/--impact-med", () => {
     const diff = execSync(`git diff ${C5} -- src/styles.css`, { encoding: "utf8" });
     const changed = diff
       .split("\n")
       .filter((l) => (l.startsWith("+") || l.startsWith("-")) && !l.startsWith("+++") && !l.startsWith("---"));
-    const token = changed.filter((l) =>
-      /--color-|--radius-|--font-|text-\[[0-9]+px\]/.test(l),
-    );
+    const token = changed.filter((l) => /--color-|--radius-|--font-|text-\[[0-9]+px\]/.test(l));
     assert.deepEqual(token, []);
+    const added = changed.filter((l) => l.startsWith("+"));
+    const extraVars = added
+      .map((l) => l.match(/--[a-z0-9-]+/g) ?? [])
+      .flat()
+      .filter((v) => v.startsWith("--impact") || v.startsWith("--color-") || v.startsWith("--radius-") || v.startsWith("--font-"));
+    for (const v of extraVars) {
+      assert.ok(v === "--impact-high" || v === "--impact-med" || !v.startsWith("--impact"), v);
+    }
   });
 });
 
@@ -200,6 +200,67 @@ describe("C67 lock integrity", () => {
     assert.equal(scored?.id, "e1");
   });
 
+  it("a pre-event re-lock creates a revision and does not overwrite", () => {
+    const draft = entry({ id: "e1", eventId: "nvda-earn", reasoning: "first lock" });
+    const first = lockCall({
+      existing: draft,
+      event: nvda,
+      headlines: tape,
+      now: Date.parse("2026-09-20T12:00:00-04:00"),
+      patch: {},
+    });
+    assert.equal(first.ok, true);
+    if (!first.ok) return;
+    const second = lockCall({
+      existing: first.entry,
+      event: nvda,
+      headlines: tape,
+      now: Date.parse("2026-09-21T09:00:00-04:00"),
+      patch: { reasoning: "final pre-event lock" },
+    });
+    assert.equal(second.ok, true);
+    if (!second.ok) return;
+    assert.ok(second.previous);
+    assert.equal(second.previous!.id, first.entry.id);
+    assert.equal(second.previous!.reasoning, "first lock");
+    assert.notEqual(second.entry.id, first.entry.id);
+    assert.equal(second.entry.reasoning, "final pre-event lock");
+    assert.ok(second.entry.lockedAt);
+  });
+
+  it("the scored version is the FINAL pre-event lock", () => {
+    const first = lockCall({
+      existing: entry({ id: "e1", eventId: "nvda-earn", reasoning: "v1" }),
+      event: nvda,
+      headlines: tape,
+      now: Date.parse("2026-09-20T12:00:00-04:00"),
+      patch: {},
+    });
+    assert.equal(first.ok, true);
+    if (!first.ok) return;
+    const second = lockCall({
+      existing: first.entry,
+      event: nvda,
+      headlines: tape,
+      now: Date.parse("2026-09-21T10:00:00-04:00"),
+      patch: { reasoning: "v2 final" },
+    });
+    assert.equal(second.ok, true);
+    if (!second.ok) return;
+    const post = mutateLocked({
+      current: second.entry,
+      event: nvda,
+      patch: { reasoning: "after the print" },
+      now: Date.parse(nvda.startsAt) + 60_000,
+      headlines: tape,
+    });
+    const scored = scoredVersion([first.entry, second.entry, post.revision!], nvda);
+    assert.equal(scored?.id, second.entry.id);
+    assert.equal(scored?.reasoning, "v2 final");
+    assert.equal(post.current.reasoning, "v2 final");
+    assert.equal(post.revision?.reasoning, "after the print");
+  });
+
   it("an incomplete entry never appears in any accuracy denominator", () => {
     const incomplete = entry({
       id: "e2",
@@ -233,8 +294,8 @@ describe("C67 lock integrity", () => {
       id: "cpi-soon",
       kind: "macro",
       macroId: "cpi",
-      startsAt: "2026-09-19T08:30:00-04:00",
-      session: "intraday",
+      startsAt: "2026-09-21T08:30:00-04:00",
+      session: "bmo",
     });
     const draft = entry({ id: "e4", eventId: "cpi-soon", callTarget: undefined });
     const gate = canLock(draft, cpi);
