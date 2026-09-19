@@ -21,4 +21,4 @@ If this session is interrupted, say: **“session got interrupted, continue from
 
 ## Next if interrupted
 
-Consumer-first desk is live: **no tab bar**. Home scores a print or locks a call in place. Names / Record / Tape / Settings are push screens. Retrieve three-tab IA at `three-tabs` (also `consumer-redesign`); five-tab at `pre-consumer-redesign`. Do not restart from zero.
+Tabs are back: **Now / Names / Record**. Inline call on Now. Launch whoosh into the blue bead. Retrieve no-tabs at `desk`; three-tab at `three-tabs`; five-tab at `pre-consumer-redesign`. Do not restart from zero.

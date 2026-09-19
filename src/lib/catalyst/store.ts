@@ -162,10 +162,7 @@ export const useCatalyst = create<CatalystState>()(
         hydrated: false,
         newsStatus: "idle" as const,
 
-        setTab: (tab) => {
-          if (tab === "now") set({ tab: "now", stack: [] });
-          else set({ tab: "now", stack: [{ name: tab }] });
-        },
+        setTab: (tab) => set({ tab, stack: [] }),
         goDesk: () => set({ tab: "now", stack: [] }),
         push: (s) => set({ stack: [...get().stack, s] }),
         pop: () => set({ stack: get().stack.slice(0, -1) }),

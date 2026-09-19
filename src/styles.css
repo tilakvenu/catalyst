@@ -335,17 +335,22 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
-  animation: catLaunchFade 1.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  overflow: hidden;
+  background: #000000;
+  color: #f5f5f7;
+  animation: catLaunchOverlay 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.cat-launch-mark {
-  animation: catLaunchMark 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+.cat-launch-mark-wrap {
+  transform-origin: 43.75% 53.125%;
+  will-change: transform;
+  animation: catLaunchWhoosh 2.15s forwards;
 }
 
 .cat-launch-word {
-  opacity: 0;
-  animation: catLaunchWord 0.55s 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  position: relative;
+  z-index: 1;
+  animation: catLaunchWord 2.15s forwards;
 }
 
 .tab-badge {
@@ -374,42 +379,70 @@
   vertical-align: 1px;
 }
 
-@keyframes catLaunchMark {
-  from {
+@keyframes catLaunchWhoosh {
+  0% {
     opacity: 0;
-    transform: scale(0.82) translateY(10px);
+    transform: scale(0.88);
     filter: blur(8px);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
-  58% {
+  18% {
     opacity: 1;
-    transform: scale(1.03) translateY(0);
+    transform: scale(1);
     filter: blur(0);
+    animation-timing-function: linear;
   }
-  to {
+  48% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1);
+    filter: blur(0);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.92, 0.12);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(78);
     filter: blur(0);
   }
 }
 
 @keyframes catLaunchWord {
-  from {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+    letter-spacing: 0.16em;
+    filter: blur(6px);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  16% {
     opacity: 0;
     transform: translateY(8px);
-    letter-spacing: 0.14em;
-    filter: blur(4px);
   }
-  to {
+  30% {
     opacity: 1;
     transform: translateY(0);
     letter-spacing: -0.02em;
     filter: blur(0);
+    animation-timing-function: linear;
+  }
+  48% {
+    opacity: 1;
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 0.2);
+  }
+  58% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
   }
 }
 
-@keyframes catLaunchFade {
+@keyframes catLaunchOverlay {
   0%,
-  62% {
+  78% {
     opacity: 1;
   }
   100% {
@@ -420,7 +453,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cat-launch,
-  .cat-launch-mark,
+  .cat-launch-mark-wrap,
   .cat-launch-word {
     animation: none !important;
     opacity: 1 !important;

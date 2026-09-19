@@ -6,7 +6,7 @@ This project was built in Grok Build because there is no Xcode here. You can kee
 
 ## What to load in Claude
 
-1. **Visual source of truth** — the running web app (this repo). Match the iPhone chrome: no tab bar, 44px sheet radius, iOS system blue as the tint (`#007AFF` / `#0A84FF`), never as a canvas wash. True black `#000000` dark mode, iOS grouped `#F2F2F7` light mode. Step-mark logo with a blue bead.
+1. **Visual source of truth** — the running web app (this repo). Match the iPhone chrome: floating glass tab bar, 44px sheet radius, iOS system blue as the tint (`#007AFF` / `#0A84FF`), never as a canvas wash. True black `#000000` dark mode, iOS grouped `#F2F2F7` light mode. Step-mark logo with a blue bead. Launch: black hold, then whoosh zoom into the bead.
 2. **Data source of truth** — `src/lib/catalyst/fixtures.ts` and `types.ts`. Port 1:1 into SwiftData.
 3. **Native stubs** — `native/Catalyst/*.swift` (models, color enum, logo, Secrets.example).
 4. Original spec — `attachments/Pasted Text.txt`.
@@ -23,11 +23,11 @@ Until that passes, say so. Do not claim a Simulator launch if you could not run 
 
 ## Screens already specified
 
-Now (home), Names, Record. Tape and Settings are push screens. Ticker, Event, Journal. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style tape with High / Med / Low impact flags, opened from Now. Prior five-tab IA: git tag `pre-consumer-redesign`. Three-tab IA: git tag `three-tabs`. Current: no tab bar — the desk is the app; Names and Record push from search and the accuracy chip.
+Now, Names, Record (tabs). Tape and Settings are push screens. Ticker, Event, Journal. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style tape with High / Med / Low impact flags, opened from Now. Launch zooms into the blue bead. Prior five-tab IA: git tag `pre-consumer-redesign`. Three-tab before inline call: `three-tabs`. No-tabs desk: `desk`.
 
 ## Design deltas from the original spec (intentional)
 
-- iOS 26 Liquid Glass on **chrome only** (nav, sheets, island). Content cards stay solid. No tab bar.
+- iOS 26 Liquid Glass on **chrome only** (tab bar, nav, sheets, island). Content cards stay solid.
 - Radii concentric (cards ~22, sheets 44 top), not 12px everywhere.
 - SF Pro / system UI stack. Large titles 34pt bold. Review percentage is SF Display, not a serif.
 - Status Island (next event countdown).

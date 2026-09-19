@@ -121,7 +121,7 @@ export function NewsScreen() {
             store.tickers.length ? (
               <SecondaryButton onClick={() => setFilter("all")}>Show all</SecondaryButton>
             ) : (
-              <PrimaryButton onClick={() => store.push({ name: "names" })}>Follow a name</PrimaryButton>
+              <PrimaryButton onClick={() => store.setTab("names")}>Follow a name</PrimaryButton>
             )
           }
         />

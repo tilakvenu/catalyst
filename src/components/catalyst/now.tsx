@@ -11,7 +11,6 @@ import {
   nearest,
   needsCall,
   deskReadyToScore,
-  recordSummary,
   suggestedPrint,
   thisWeek,
 } from "@/lib/catalyst/selectors";
@@ -41,14 +40,13 @@ export function NowScreen() {
     .slice(0, 3);
 
   const empty = store.tickers.length === 0 && store.macros.length === 0;
-  const record = recordSummary(store);
   const briefing = deskBriefing(store, next, ready.length, open.length);
 
   return (
-    <div className="px-4 pb-10 pt-1">
-      <header className="mb-3 flex items-start justify-between gap-2 pt-1">
+    <div className="px-4 pb-28 pt-1">
+      <header className="mb-4 flex items-start justify-between pt-1">
         <div className="min-w-0">
-          <h1 className="wordmark text-[22px] leading-none">Catalyst</h1>
+          <h1 className="text-[34px] font-bold leading-none tracking-tight">Now</h1>
           <p suppressHydrationWarning className="mt-1.5 text-[13px] leading-snug text-[var(--fg-muted)]">
             <span className="session-dot" style={{ background: phaseColor(clock.phase) }} />
             <span className="font-medium text-[var(--fg)]">{clock.label}</span>
@@ -56,36 +54,15 @@ export function NowScreen() {
             {briefing}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => store.push({ name: "record" })}
-            className="pressable relative flex h-11 min-w-11 items-center justify-center rounded-full px-2.5"
-            style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
-            aria-label="Record"
-          >
-            <span className="num text-[14px] font-semibold">{record.pct == null ? "—" : `${record.pct}%`}</span>
-            {record.pending ? <span className="tab-badge">{record.pending > 9 ? "9+" : record.pending}</span> : null}
-          </button>
-          <button
-            type="button"
-            onClick={() => store.push({ name: "names" })}
-            className="pressable flex h-11 w-11 items-center justify-center rounded-full"
-            style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
-            aria-label="Search names"
-          >
-            <SearchIcon />
-          </button>
-          <button
-            type="button"
-            onClick={() => store.push({ name: "settings" })}
-            className="pressable flex h-11 w-11 items-center justify-center rounded-full"
-            style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
-            aria-label="Settings"
-          >
-            <GearIcon />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => store.push({ name: "settings" })}
+          className="pressable mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+          style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
+          aria-label="Settings"
+        >
+          <GearIcon />
+        </button>
       </header>
 
       {empty ? (
@@ -176,7 +153,7 @@ function EmptyHome() {
       actions={
         <>
           <PrimaryButton onClick={() => store.addTicker("NVDA")}>Follow NVDA</PrimaryButton>
-          <SecondaryButton onClick={() => store.push({ name: "names" })}>Search names</SecondaryButton>
+          <SecondaryButton onClick={() => store.setTab("names")}>Search names</SecondaryButton>
         </>
       }
     />
@@ -223,7 +200,7 @@ function TickerRail() {
             <button
               key={m.id}
               type="button"
-              onClick={() => (ev ? store.push({ name: "event", id: ev.id }) : store.push({ name: "names" }))}
+              onClick={() => (ev ? store.push({ name: "event", id: ev.id }) : store.setTab("names"))}
               className="pressable flex h-11 shrink-0 items-center rounded-full px-3.5"
               style={{ background: "var(--bg-card)" }}
             >
@@ -455,15 +432,6 @@ function GearIcon() {
         strokeWidth="1.7"
         strokeLinecap="round"
       />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <circle cx="10" cy="10" r="6.25" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M14.8 14.8L19 19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

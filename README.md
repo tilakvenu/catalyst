@@ -14,20 +14,20 @@ Native SwiftUI sources for Claude Design / Xcode live in [`native/`](native/). T
 
 ## Demo
 
-Opens on the **desk**, populated. Demo mode is on by default. No network, no API keys.
+Opens on **Now**, populated. Demo mode is on by default. No network, no API keys.
 
 | Surface | What to try |
 |---------|-------------|
-| Desk | One job: score a print if one is in, else lock the next call with Up / Down / Flat on the card. Ticker rail, high tape, later this week |
-| Names | Search from the header. All/Held/Macro, swipe Mute/Remove, CSV |
-| Record | Accuracy chip on the desk. Conviction bands, Pending with Score vs Complete |
-| Tape | From desk → See all. Impact flags, Rank with Grok |
+| Now | Next print with **Up / Down / Flat** on the card. Score a print if one is in. Ticker rail, high tape |
+| Names | Search, All/Held/Macro, swipe Mute/Remove, CSV |
+| Record | Accuracy, conviction bands, Pending with Score vs Complete |
+| Tape | From Now → See all. Impact flags, Rank with Grok |
 | Ticker | Quote, spark, next event, flagged headlines |
 | Event | Your call first. Write / lock |
-| Journal | Direction persists on tap, conviction 1–5, why, wrong-if. Drafts stay Pending |
-| Settings | Gear on the desk. Demo, keys, theme, reset |
+| Journal | Direction, conviction 1–5, why, wrong-if. Drafts stay Pending |
+| Settings | Gear on Now. Demo, keys, theme, reset |
 
-First open of the phone: step-mark + **Catalyst** launch overlay, then the desk.
+First open of the phone: black screen, the mark, then a whoosh into the blue bead. Tabs: Now / Names / Record.
 
 ## APIs
 
