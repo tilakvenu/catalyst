@@ -1,5 +1,8 @@
 import { makeSpark } from "./format";
 import { decorateHeadline } from "./impact";
+import { packEvidence } from "./evidence";
+import { SCORING_RULE_VERSION } from "./build";
+import { isEntryComplete } from "./types";
 import type {
   AppSnapshot,
   CatalystEvent,
@@ -126,6 +129,17 @@ export function buildDemoSnapshot(now = Date.now()): AppSnapshot {
       lastPrice: 562.11,
       change: 1.84,
       changePct: 0.33,
+      kind: "equity",
+    },
+    {
+      id: "qqq",
+      symbol: "QQQ",
+      company: "Invesco QQQ Trust",
+      held: false,
+      muted: false,
+      lastPrice: 481.2,
+      change: 1.12,
+      changePct: 0.23,
       kind: "equity",
     },
   ];
@@ -677,7 +691,7 @@ export function buildDemoSnapshot(now = Date.now()): AppSnapshot {
 
   const headlines: Headline[] = rawHeadlines.map((h) => {
     const deco = decorateHeadline(h);
-    return { ...h, ...deco, scoredBy: "fixture" as const, origin: "fixture" as const };
+    return { ...h, ...deco, scoredBy: "fixture" as const, origin: "fixture" as const, firstSeenAt: h.publishedAt };
   });
 
   const entries: JournalEntry[] = [
@@ -844,6 +858,21 @@ export function buildDemoSnapshot(now = Date.now()): AppSnapshot {
     },
   ];
 
+  const stamped: JournalEntry[] = entries.map((e) => {
+    if (!isEntryComplete(e) || e.actualDirection == null) return e;
+    const ev = events.find((x) => x.id === e.eventId);
+    const related = headlines.filter((h) =>
+      ev?.tickerId ? h.tickerId === ev.tickerId : Boolean(ev?.macroId && h.macroId === ev.macroId),
+    );
+    return {
+      ...e,
+      lockedAt: e.updatedAt,
+      evidenceSnapshot: packEvidence(related.slice(0, 4)),
+      scoringRuleVersion: e.id === "e-jpm" ? undefined : SCORING_RULE_VERSION,
+      callTarget: ev?.kind === "macro" ? "qqq" : e.callTarget,
+    };
+  });
+
   const sparks: AppSnapshot["sparks"] = {};
   for (const t of tickers) {
     sparks[t.id] = sparkSet(t.symbol.charCodeAt(0) * 100 + t.symbol.charCodeAt(1));
@@ -924,7 +953,7 @@ export function buildDemoSnapshot(now = Date.now()): AppSnapshot {
     profiles,
     events,
     headlines,
-    entries,
+    entries: stamped,
     quotes: tickers.map((t) => {
       const prev = Number((t.lastPrice - t.change).toFixed(2));
       const high = Number((Math.max(t.lastPrice, prev) + Math.abs(t.change) * 0.35).toFixed(2));
@@ -955,6 +984,7 @@ export function buildDemoSnapshot(now = Date.now()): AppSnapshot {
       jpm: { tickerId: "jpm", marketCap: 590_000, pe: 13.8, week52High: 225.98, week52Low: 190.0, target: 230, fetchedAt: at(now, -2) },
       avgo: { tickerId: "avgo", marketCap: 770_000, pe: 52.4, week52High: 192.0, week52Low: 120.0, target: 185, fetchedAt: at(now, -2) },
       spy: { tickerId: "spy", marketCap: 620_000, pe: 24.1, week52High: 566.0, week52Low: 481.0, fetchedAt: at(now, -2) },
+      qqq: { tickerId: "qqq", marketCap: 280_000, pe: 28.4, week52High: 505.0, week52Low: 402.0, fetchedAt: at(now, -2) },
     },
     macroPrints: {
       cpi: { macroId: "cpi", value: "3.0% YoY", prior: "2.9%", asOf: at(now, -28 * 24), source: "BLS" },

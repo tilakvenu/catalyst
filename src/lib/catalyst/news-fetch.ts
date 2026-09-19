@@ -3,7 +3,9 @@
  * Keys, if present, fill gaps (Finnhub company-news, NewsAPI, AV NEWS_SENTIMENT).
  */
 import { decorateHeadline } from "./impact";
+import { GROK_RANK_SYSTEM, parseGrokRank } from "./grok-rank";
 import type { Headline, NewsImpact } from "./types";
+
 
 export type NewsKeys = { finnhub?: string; alphaVantage?: string; newsapi?: string };
 type WatchTicker = { symbol: string; company: string; tickerId: string };
@@ -287,8 +289,7 @@ export async function grokRankHeadlines(
       messages: [
         {
           role: "system",
-          content:
-            "You rank equity news by likely next-session price impact. Reply with JSON only: an array of {id, impact, why}. impact is high (>2% likely move), medium (0.5–2%), or low (<0.5%). why is one short sentence. No markdown.",
+          content: GROK_RANK_SYSTEM,
         },
         {
           role: "user",
@@ -300,19 +301,9 @@ export async function grokRankHeadlines(
   if (!res.ok) return [];
   const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   const text = body.choices?.[0]?.message?.content ?? "";
-  const jsonStart = text.indexOf("[");
-  const jsonEnd = text.lastIndexOf("]");
-  if (jsonStart < 0 || jsonEnd < 0) return [];
-  try {
-    const parsed = JSON.parse(text.slice(jsonStart, jsonEnd + 1)) as {
-      id?: string;
-      impact?: string;
-      why?: string;
-    }[];
-    return parsed
-      .filter((r) => r.id && (r.impact === "high" || r.impact === "medium" || r.impact === "low"))
-      .map((r) => ({ id: r.id as string, impact: r.impact as NewsImpact, why: (r.why ?? "").slice(0, 180) }));
-  } catch {
-    return [];
-  }
+  return parseGrokRank(text);
 }
+
+export { GROK_RANK_SYSTEM, parseGrokRank, stripDirectional } from "./grok-rank";
+
+

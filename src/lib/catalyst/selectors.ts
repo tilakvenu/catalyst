@@ -1,5 +1,7 @@
+import { currentDraft, scoredVersion } from "./lock";
 import { dayHeading, hoursUntil, inNextWeek, inThisWeek, startOfNyDay } from "./format";
-import { isPending, isScored } from "./scoring";
+import { classifyMove, isPending, isScored, typicalSessionPct } from "./scoring";
+import { isResolvableAt } from "./session";
 import {
   isEntryComplete,
   missingFields,
@@ -7,6 +9,7 @@ import {
   type Headline,
   type JournalEntry,
   type MacroItem,
+  type SparkRange,
   type Ticker,
 } from "./types";
 
@@ -16,6 +19,7 @@ export interface StoreSlice {
   events: CatalystEvent[];
   entries: JournalEntry[];
   now: number;
+  sparks?: Record<string, Record<SparkRange, number[]>>;
 }
 
 export function tickerById(s: StoreSlice, id?: string) {
@@ -71,18 +75,23 @@ export function nearest(s: StoreSlice): CatalystEvent | undefined {
   return upcomingFollowed(s)[0];
 }
 
-/** Upcoming prints in the next week that still need a complete call. */
 export function needsCall(s: StoreSlice): CatalystEvent[] {
   return upcomingFollowed(s).filter((e) => {
     const h = hoursUntil(e.startsAt, s.now);
     if (h > 7 * 24) return false;
     const note = entryFor(s, e.id);
-    return !note || !isEntryComplete(note);
+    return !note || !isEntryComplete(note) || !note.lockedAt;
   });
 }
 
+export function entriesFor(s: StoreSlice, eventId: string) {
+  return s.entries.filter((e) => e.eventId === eventId);
+}
+
 export function entryFor(s: StoreSlice, eventId: string) {
-  return s.entries.find((e) => e.eventId === eventId);
+  const event = s.events.find((e) => e.id === eventId);
+  if (event) return scoredVersion(s.entries, event) ?? currentDraft(s.entries, eventId);
+  return currentDraft(s.entries, eventId);
 }
 
 export function isUrgent(iso: string, now: number) {
@@ -111,33 +120,67 @@ export function upcomingGrouped(
   }));
 }
 
+export function typicalFor(s: StoreSlice, event: CatalystEvent, callTarget?: string): number | null {
+  const tickerId = event.tickerId ?? callTarget;
+  if (!tickerId || !s.sparks) return null;
+  const dates = s.events.filter((e) => e.tickerId === tickerId).map((e) => e.startsAt);
+  return typicalSessionPct(s.sparks[tickerId]?.["1M"] ?? [], dates, s.now);
+}
+
 export function suggestedPrint(
   s: StoreSlice,
   event: CatalystEvent,
-): { movePct: number; direction: "up" | "down" | "flat" } | null {
+): { movePct: number; direction: "up" | "down" | "flat"; typical: number | null } | null {
   const entry = entryFor(s, event.id);
-  if (!entry || !isEntryComplete(entry)) return null;
+  if (!entry || !isEntryComplete(entry) || !entry.lockedAt) return null;
   if (entry.actualDirection != null && entry.actualMovePct != null) return null;
-  if (new Date(event.startsAt).getTime() > s.now - 16 * 3600000) return null;
+  if (!isResolvableAt(event.startsAt, event.session, s.now)) return null;
   const move =
     event.printMovePct ??
-    (event.tickerId ? tickerById(s, event.tickerId)?.changePct : undefined);
+    (event.tickerId
+      ? tickerById(s, event.tickerId)?.changePct
+      : entry.callTarget
+        ? tickerById(s, entry.callTarget)?.changePct
+        : undefined);
   if (move == null) return null;
-  const direction = move > 0.4 ? "up" : move < -0.4 ? "down" : "flat";
-  return { movePct: move, direction };
+  const typical = typicalFor(s, event, entry.callTarget);
+  const direction = typical != null ? classifyMove(move, typical) : move > 0 ? "up" : move < 0 ? "down" : "flat";
+  return { movePct: move, direction, typical };
 }
 
 export function readyToScore(s: StoreSlice): CatalystEvent[] {
   return s.events.filter((e) => isFollowedEvent(s, e) && suggestedPrint(s, e));
 }
 
-/** Prints that belong on the desk — last two sessions, not last week's leftovers. */
 export function deskReadyToScore(s: StoreSlice): CatalystEvent[] {
-  return readyToScore(s).filter((e) => s.now - new Date(e.startsAt).getTime() <= 48 * 3600000);
+  return readyToScore(s).filter((e) => isResolvableAt(e.startsAt, e.session, s.now));
+}
+
+export type DeskHero =
+  | { kind: "result"; event: CatalystEvent }
+  | { kind: "call"; event: CatalystEvent }
+  | { kind: "quiet" };
+
+export function deskHero(s: StoreSlice): DeskHero {
+  const ready = deskReadyToScore(s)[0];
+  if (ready) return { kind: "result", event: ready };
+  const next = needsCall(s)[0];
+  if (next) return { kind: "call", event: next };
+  return { kind: "quiet" };
+}
+
+export function oldestIncomplete(s: StoreSlice): JournalEntry | undefined {
+  return s.entries
+    .filter((e) => isPending(e, s.now) && missingFields(e).length > 0)
+    .sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime())[0];
 }
 
 export function pendingCount(s: StoreSlice): number {
   return s.entries.filter((e) => isPending(e, s.now)).length;
+}
+
+export function unresolvableCount(s: StoreSlice): number {
+  return s.entries.filter((e) => e.state === "unresolvable").length;
 }
 
 export function inboxCount(s: StoreSlice): number {
@@ -163,7 +206,6 @@ export function recordSummary(s: StoreSlice): {
   };
 }
 
-/** Most recent past print for the same name. */
 export function lastSimilarEvent(s: StoreSlice, event: CatalystEvent): CatalystEvent | undefined {
   return pastFollowed(s).find((e) => {
     if (e.id === event.id) return false;
@@ -173,7 +215,6 @@ export function lastSimilarEvent(s: StoreSlice, event: CatalystEvent): CatalystE
   });
 }
 
-/** Highest-impact recent headline for the name this print belongs to. */
 export function setupHeadline(headlines: Headline[], event: CatalystEvent): Headline | undefined {
   const rank = { high: 0, medium: 1, low: 2 } as const;
   return headlines
@@ -187,6 +228,14 @@ export function setupHeadline(headlines: Headline[], event: CatalystEvent): Head
       if (d !== 0) return d;
       return +new Date(b.publishedAt) - +new Date(a.publishedAt);
     })[0];
+}
+
+export function materialChangeCount(headlines: Headline[], tickerId?: string, macroId?: string): number {
+  return headlines.filter(
+    (h) =>
+      h.impact === "high" &&
+      ((tickerId && h.tickerId === tickerId) || (macroId && h.macroId === macroId)),
+  ).length;
 }
 
 export { isEntryComplete, isPending, isScored, missingFields };

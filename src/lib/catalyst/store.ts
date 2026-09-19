@@ -1,10 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { retainSnapshotted, stampFirstSeen } from "./evidence";
 import { buildDemoSnapshot, buildEmptySnapshot } from "./fixtures";
 import { isoDateEt, makeSpark } from "./format";
 import { decorateHeadline } from "./impact";
 import { liveCalendar, liveEarnings, liveMacro, liveMetrics, liveNews, liveQuote, liveRecs, liveScoreNews, liveWatchlistNews } from "./live";
-import { directionFromMove } from "./session";
+import { lockCall as commitLock, currentDraft, eventHasStarted, mutateLocked } from "./lock";
+import { tryResolve } from "./resolve";
+import { applyScenario, advanceScenario, type ScenarioId } from "./scenarios";
+import { buildSimulationSnapshot } from "./simulation";
 import { SEARCH_UNIVERSE } from "./universe";
 import {
   SEED_VERSION,
@@ -82,10 +86,18 @@ export interface CatalystState extends AppSnapshot {
   saveJournal: (
     eventId: string,
     patch: Partial<
-      Pick<JournalEntry, "direction" | "conviction" | "reasoning" | "invalidation" | "text" | "sentiment">
+      Pick<
+        JournalEntry,
+        "direction" | "conviction" | "reasoning" | "invalidation" | "text" | "sentiment" | "callTarget"
+      >
     >,
-  ) => void;
+  ) => { ok: true } | { ok: false; reason: string };
+  lockCall: (eventId: string) => { ok: true } | { ok: false; reason: string };
   applyPrintScore: (eventId: string) => void;
+  autoResolve: () => void;
+  runScenario: (id: ScenarioId) => void;
+  advanceScenario: () => void;
+  loadSimulation: () => void;
   refreshLive: (symbol: string, tickerId: string) => Promise<void>;
   scanLive: () => Promise<void>;
   refreshNews: () => Promise<void>;
@@ -168,7 +180,10 @@ export const useCatalyst = create<CatalystState>()(
         pop: () => set({ stack: get().stack.slice(0, -1) }),
         openSheet: (sheet) => set({ sheet }),
         closeSheet: () => set({ sheet: null }),
-        tick: (n) => set({ now: n ?? Date.now() }),
+        tick: (n) => {
+          set({ now: n ?? Date.now() });
+          get().autoResolve();
+        },
         dismissLastScore: () => set({ lastScore: null }),
 
         setTheme: (theme) => set({ theme }),
@@ -329,102 +344,183 @@ export const useCatalyst = create<CatalystState>()(
         dismissBanner: () => set({ banner: null }),
 
         saveNote: (eventId, text, sentiment) => {
-          const existing = get().entries.find((e) => e.eventId === eventId);
           const mappedDir: Direction | null =
-            sentiment === "bullish" ? "up" : sentiment === "bearish" ? "down" : existing?.direction ?? null;
+            sentiment === "bullish" ? "up" : sentiment === "bearish" ? "down" : null;
+          get().saveJournal(eventId, {
+            text,
+            sentiment,
+            reasoning: text,
+            direction: mappedDir,
+          });
+        },
+        saveJournal: (eventId, patch) => {
+          const event = get().events.find((e) => e.id === eventId);
+          if (!event) return { ok: false, reason: "missing-event" };
+          const existing = currentDraft(get().entries, eventId);
+          const now = Date.now();
+          if (existing?.lockedAt && eventHasStarted(event, now)) {
+            const { revision } = mutateLocked({
+              current: existing,
+              event,
+              patch,
+              now,
+              headlines: get().headlines,
+            });
+            if (revision) set({ entries: [...get().entries, revision] });
+            return { ok: true };
+          }
           if (existing) {
+            const { current, revision } = mutateLocked({
+              current: existing,
+              event,
+              patch,
+              now,
+              headlines: get().headlines,
+            });
+            set({
+              entries: revision
+                ? [...get().entries, revision]
+                : get().entries.map((e) => (e.id === existing.id ? current : e)),
+            });
+            return { ok: true };
+          }
+          const next: JournalEntry = {
+            id: newId("e"),
+            eventId,
+            text: patch.text ?? patch.reasoning ?? null,
+            sentiment: patch.sentiment ?? null,
+            direction: patch.direction ?? null,
+            conviction: patch.conviction ?? null,
+            reasoning: patch.reasoning ?? null,
+            invalidation: patch.invalidation ?? null,
+            callTarget: patch.callTarget,
+            updatedAt: new Date(now).toISOString(),
+          };
+          if (patch.reasoning && !next.text) next.text = patch.reasoning;
+          set({ entries: [...get().entries, next] });
+          return { ok: true };
+        },
+        lockCall: (eventId) => {
+          const event = get().events.find((e) => e.id === eventId);
+          if (!event) return { ok: false, reason: "missing-event" };
+          const existing = currentDraft(get().entries, eventId);
+          const result = commitLock({
+            existing,
+            event,
+            headlines: get().headlines,
+            now: Date.now(),
+            patch: existing ?? {},
+          });
+          if (!result.ok) return result;
+          if (result.previous) {
+            const rest = get().entries.filter((e) => e.id !== result.entry.id);
+            set({ entries: [...rest, result.entry] });
+          } else if (existing) {
+            set({
+              entries: get().entries.map((e) => (e.id === existing.id ? result.entry : e)),
+            });
+          } else {
+            set({ entries: [...get().entries, result.entry] });
+          }
+          return { ok: true };
+        },
+
+        applyPrintScore: (eventId) => {
+          const event = get().events.find((e) => e.id === eventId);
+          if (!event) return;
+          const result = tryResolve({
+            event,
+            entries: get().entries,
+            tickers: get().tickers,
+            sparks: get().sparks,
+            events: get().events,
+            now: get().now,
+          });
+          if (result.action === "none") return;
+          const existing = get().entries.find((e) => e.id === (result.action === "score" ? result.entryId : result.entryId));
+          const ticker = event.tickerId ? get().tickers.find((t) => t.id === event.tickerId) : undefined;
+          const target =
+            existing?.callTarget ? get().tickers.find((t) => t.id === existing.callTarget) : undefined;
+          const macro = event.macroId ? get().macros.find((m) => m.id === event.macroId) : undefined;
+          const kicker = ticker?.symbol ?? target?.symbol ?? macro?.shortName ?? "—";
+          if (result.action === "unresolvable") {
             set({
               entries: get().entries.map((e) =>
-                e.id === existing.id
+                e.id === result.entryId
                   ? {
                       ...e,
-                      text,
-                      sentiment,
-                      reasoning: e.reasoning ?? text,
-                      direction: e.direction ?? mappedDir,
+                      state: "unresolvable" as const,
+                      actualFigure: result.reason,
                       updatedAt: new Date().toISOString(),
                     }
                   : e,
               ),
             });
-          } else {
-            set({
-              entries: [
-                ...get().entries,
-                {
-                  id: newId("e"),
-                  eventId,
-                  text,
-                  sentiment,
-                  direction: mappedDir,
-                  conviction: null,
-                  reasoning: text,
-                  invalidation: null,
-                  updatedAt: new Date().toISOString(),
-                },
-              ],
-            });
+            return;
           }
-        },
-        saveJournal: (eventId, patch) => {
-          const existing = get().entries.find((e) => e.eventId === eventId);
-          const next: JournalEntry = existing
-            ? { ...existing, ...patch, updatedAt: new Date().toISOString() }
-            : {
-                id: newId("e"),
-                eventId,
-                text: patch.text ?? patch.reasoning ?? null,
-                sentiment: patch.sentiment ?? null,
-                direction: patch.direction ?? null,
-                conviction: patch.conviction ?? null,
-                reasoning: patch.reasoning ?? null,
-                invalidation: patch.invalidation ?? null,
-                updatedAt: new Date().toISOString(),
-              };
-          if (patch.reasoning && !next.text) next.text = patch.reasoning;
-          if (existing) {
-            set({
-              entries: get().entries.map((e) => (e.id === existing.id ? next : e)),
-            });
-          } else {
-            set({ entries: [...get().entries, next] });
-          }
-        },
-
-        applyPrintScore: (eventId) => {
-          const event = get().events.find((e) => e.id === eventId);
-          const existing = get().entries.find((e) => e.eventId === eventId);
-          if (!event || !existing) return;
-          const ticker = event.tickerId ? get().tickers.find((t) => t.id === event.tickerId) : undefined;
-          const macro = event.macroId ? get().macros.find((m) => m.id === event.macroId) : undefined;
-          const move = event.printMovePct ?? ticker?.changePct;
-          if (move == null) return;
-          const actualDirection = directionFromMove(move);
-          const kicker = ticker?.symbol ?? macro?.shortName ?? "—";
           set({
             lastScore: {
               eventId,
-              hit: existing.direction === actualDirection,
+              hit: existing?.direction === result.actualDirection,
               kicker,
               title: event.title,
-              predicted: existing.direction,
-              actual: actualDirection,
-              movePct: Number(move.toFixed(2)),
+              predicted: existing?.direction ?? null,
+              actual: result.actualDirection,
+              movePct: result.actualMovePct,
             },
             entries: get().entries.map((e) =>
-              e.eventId === eventId
+              e.id === result.entryId
                 ? {
                     ...e,
-                    actualDirection,
-                    actualMovePct: Number(move.toFixed(2)),
+                    actualDirection: result.actualDirection,
+                    actualMovePct: result.actualMovePct,
                     actualMoveDate: new Date().toISOString(),
-                    actualFigure:
-                      e.actualFigure ??
-                      `Next-session ${move >= 0 ? "+" : ""}${move.toFixed(2)}%. Scored from the print, not from memory.`,
+                    actualFigure: e.actualFigure ?? result.figure,
+                    scoringRuleVersion: e.scoringRuleVersion,
                     updatedAt: new Date().toISOString(),
                   }
                 : e,
             ),
+          });
+        },
+        autoResolve: () => {
+          for (const event of get().events) {
+            const before = get().entries;
+            const result = tryResolve({
+              event,
+              entries: before,
+              tickers: get().tickers,
+              sparks: get().sparks,
+              events: get().events,
+              now: get().now,
+            });
+            if (result.action !== "none") get().applyPrintScore(event.id);
+          }
+        },
+        runScenario: (id) => {
+          const patch = applyScenario(get(), id);
+          set(patch);
+          get().autoResolve();
+        },
+        advanceScenario: () => {
+          const patch = advanceScenario(get());
+          set(patch);
+          get().autoResolve();
+        },
+        loadSimulation: () => {
+          const { snapshot } = buildSimulationSnapshot(Date.now());
+          set({
+            ...snapshot,
+            theme: get().theme,
+            liveKeys: get().liveKeys,
+            tab: "record",
+            stack: [{ name: "simulation" }],
+            sheet: null,
+            lastScore: null,
+            emptySeed: false,
+            demoMode: true,
+            dataSource: "fixture",
+            now: Date.now(),
           });
         },
 
@@ -463,19 +559,19 @@ export const useCatalyst = create<CatalystState>()(
               ];
             }
             if (news.length) {
+              const nowIso = new Date().toISOString();
+              const incoming = news.map((n, i) => ({
+                id: `live-${tickerId}-${i}`,
+                tickerId,
+                title: n.title,
+                source: n.source,
+                publishedAt: n.publishedAt,
+                origin: "live" as const,
+                ...decorateHeadline(n),
+              }));
+              const stamped = stampFirstSeen(s.headlines, incoming, nowIso);
               const kept = s.headlines.filter((h) => h.tickerId !== tickerId || h.origin === "fixture");
-              next.headlines = [
-                ...news.map((n, i) => ({
-                  id: `live-${tickerId}-${i}`,
-                  tickerId,
-                  title: n.title,
-                  source: n.source,
-                  publishedAt: n.publishedAt,
-                  origin: "live" as const,
-                  ...decorateHeadline(n),
-                })),
-                ...kept,
-              ];
+              next.headlines = retainSnapshotted(kept, stamped, s.entries);
             }
             if (earns.length) {
               next.earningsHistory = { ...s.earningsHistory, [tickerId]: earns };
@@ -579,9 +675,11 @@ export const useCatalyst = create<CatalystState>()(
             }
             const liveIds = new Set(tickers.map((t) => t.id));
             const kept = get().headlines.filter((h) => h.origin === "fixture" || (h.tickerId && !liveIds.has(h.tickerId)));
+            const nowIso = new Date().toISOString();
+            const stamped = stampFirstSeen(get().headlines, items, nowIso);
             set({
-              headlines: [...items, ...kept],
-              newsFetchedAt: new Date().toISOString(),
+              headlines: retainSnapshotted(kept, stamped, get().entries),
+              newsFetchedAt: nowIso,
               newsStatus: "idle",
             });
           } catch {
@@ -628,7 +726,7 @@ export const useCatalyst = create<CatalystState>()(
       };
     },
     {
-      name: "catalyst-v3",
+      name: "catalyst-c67",
       version: SEED_VERSION,
       migrate: (persisted, from) => {
         const s = (persisted ?? {}) as AppSnapshot;

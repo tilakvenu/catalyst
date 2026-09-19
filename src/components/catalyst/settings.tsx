@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { BUILD_NAME, C5_SHA, SCORING_RULE_VERSION } from "@/lib/catalyst/build";
+import { FLAT_BAND_MULTIPLE } from "@/lib/catalyst/scoring";
 import { useCatalyst } from "@/lib/catalyst/store";
 import type { NotifyLead, ThemePref } from "@/lib/catalyst/types";
 import { cn } from "@/lib/utils";
@@ -29,7 +31,7 @@ export function SettingsScreen() {
           </select>
         </Row>
         <p className="px-4 pb-3 text-[12px] leading-relaxed text-[var(--fg-faint)]">
-          Local alerts fire on the device when an event is added to the timeline. No push server.
+          Only real workflow state: an unlocked call before a print, a material filing, or a result ready. No “come back” nag.
         </p>
         <button
           type="button"
@@ -91,6 +93,33 @@ export function SettingsScreen() {
         ) : null}
       </Group>
 
+      <Group title="Demo flows">
+        <p className="px-4 pt-3 text-[13px] leading-relaxed text-[var(--fg-muted)]">
+          Interactive walkthroughs. They rewrite the in-memory journal. Restore demo to go back.
+        </p>
+        <div className="flex flex-col gap-2 p-4">
+          <SecondaryButton onClick={() => store.runScenario("A")}>A — Earnings lock</SecondaryButton>
+          <SecondaryButton onClick={() => store.runScenario("B")}>B — Macro · QQQ</SecondaryButton>
+          <SecondaryButton onClick={() => store.runScenario("C")}>C — High-conviction miss</SecondaryButton>
+          <SecondaryButton onClick={() => store.advanceScenario()}>Advance to result</SecondaryButton>
+        </div>
+      </Group>
+
+      <Group title="Synthetic model">
+        <p className="px-4 pt-3 text-[13px] leading-relaxed text-[var(--fg-muted)]">
+          SYNTHETIC MODEL — NOT PRODUCT VALIDATION. Six months of one user, including a real calibration flaw.
+        </p>
+        <div className="p-4">
+          <PrimaryButton
+            onClick={() => {
+              store.loadSimulation();
+            }}
+          >
+            Load synthetic record
+          </PrimaryButton>
+        </div>
+      </Group>
+
       <Group title="Appearance">
         <Row label="Theme">
           <div className="flex gap-1">
@@ -137,15 +166,14 @@ export function SettingsScreen() {
 
       <Group title="About">
         <div className="px-4 py-4">
-          <p className="wordmark text-[12px] text-[var(--fg-faint)]">Catalyst</p>
+          <p className="wordmark text-[12px] text-[var(--fg-faint)]">{BUILD_NAME}</p>
           <p className="mt-1 text-[14px] text-[var(--fg-muted)]">
-            Calls. Catalysts. Score. A journal for the events that actually move a name — and a
-            scoreboard that only counts complete calls.
+            Call it. Lock it. Learn from it. A decision-calibration system — not a news app, not a brokerage.
           </p>
           <p className="mt-3 text-[12px] text-[var(--fg-faint)]">
-            Live mode rotates free endpoints so one dead key does not blank the tape. Calendar
-            dates for watched names fill the timeline automatically. This web build is the class
-            demo; native Swift lives alongside for Xcode.
+            Scoring rule v{SCORING_RULE_VERSION} · FLAT_BAND_MULTIPLE = {FLAT_BAND_MULTIPLE}. Typical session excludes known event dates.
+            C5 preserved at {C5_SHA.slice(0, 12)}. Calendar is load-bearing: if it goes dark, scoring goes dark.
+            Free RSS/API sources are prototype dependencies, not commercial contracts.
           </p>
         </div>
       </Group>

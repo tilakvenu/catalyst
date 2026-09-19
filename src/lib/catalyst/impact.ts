@@ -1,8 +1,7 @@
 import type { Headline, NewsImpact, NewsKind } from "./types";
 
 /**
- * Rank a headline by how much it is likely to move the name next session.
- * High ≈ >2% one-day, medium ≈ 0.5–2%, low is color / noise.
+ * Rank a headline by expected materiality — magnitude, not direction.
  * Keyword first so the tape paints without a model call. Grok may override.
  */
 const HIGH = [
@@ -69,16 +68,16 @@ export function scoreImpact(title: string, summary = ""): { impact: NewsImpact; 
     const kind = classifyKind(title);
     const why =
       kind === "target"
-        ? "Street target or rating change. Next-session flow usually follows."
+        ? "Street target or rating change. Flow often follows."
         : kind === "filing"
           ? "Primary filing. The tape has to reprice the new fact."
-          : "Hard news that typically moves a name more than a session's typical range.";
+          : "Hard news that typically re-rates the name.";
     return { impact: "high", why };
   }
   if (MEDIUM.some((r) => r.test(t))) {
     return { impact: "medium", why: "Material, but not a full reset of the setup." };
   }
-  return { impact: "low", why: "Background coverage. Unlikely to move the name on its own." };
+  return { impact: "low", why: "Background coverage. Unlikely to change a call on its own." };
 }
 
 export function decorateHeadline(
@@ -90,31 +89,34 @@ export function decorateHeadline(
 }
 
 export function kindLabel(kind?: NewsKind): string {
-  if (kind === "target") return "Target";
+  if (kind === "target") return "Street";
   if (kind === "announcement") return "Company";
   if (kind === "filing") return "Filing";
   return "Coverage";
 }
 
 export function impactLabel(impact?: NewsImpact): string {
-  if (impact === "high") return "High";
-  if (impact === "medium") return "Med";
-  return "Low";
-}
-
-/** Next-session move the flag is sized for. */
-export function impactMove(impact?: NewsImpact): string {
-  if (impact === "high") return ">2%";
-  if (impact === "medium") return "0.5–2%";
-  return "<0.5%";
+  if (impact === "high") return "High impact";
+  if (impact === "medium") return "Medium impact";
+  return "Low impact";
 }
 
 export function impactCaption(impact?: NewsImpact): string {
-  return `${impactLabel(impact)} · ${impactMove(impact)}`;
+  return impactLabel(impact);
 }
 
-export function impactTone(impact?: NewsImpact): "neg" | "warn" | "neutral" {
-  if (impact === "high") return "neg";
-  if (impact === "medium") return "warn";
+/** Impact is magnitude, not direction — never red. */
+export function impactTone(_impact?: NewsImpact): "accent" | "neutral" {
+  void _impact;
   return "neutral";
+}
+
+export function impactRulePx(impact?: NewsImpact): number {
+  if (impact === "high") return 4;
+  if (impact === "medium") return 2.5;
+  return 1.5;
+}
+
+export function impactWeight(impact?: NewsImpact): "semibold" | "normal" {
+  return impact === "high" ? "semibold" : "normal";
 }

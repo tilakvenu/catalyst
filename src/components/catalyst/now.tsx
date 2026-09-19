@@ -1,24 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EMPTY_COPY } from "@/lib/catalyst/fixtures";
-import { ageLabel, countdown, firstSentence, formatPct, formatWhen } from "@/lib/catalyst/format";
-import { impactCaption, impactTone, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
-import { typicalSessionPct } from "@/lib/catalyst/scoring";
+import { countdown, firstSentence, formatPct, formatWhen, sessionLabel } from "@/lib/catalyst/format";
+import { impactLabel, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
+import { EventBead } from "./mark";
+import { flatBandPct } from "@/lib/catalyst/scoring";
 import { marketClock } from "@/lib/catalyst/session";
 import {
+  deskHero,
   entryFor,
   eventLabel,
   isEntryComplete,
   kindLabel,
   lastSimilarEvent,
-  nearest,
-  needsCall,
-  deskReadyToScore,
+  missingFields,
+  oldestIncomplete,
+  pendingCount,
   setupHeadline,
   suggestedPrint,
+  typicalFor,
   thisWeek,
 } from "@/lib/catalyst/selectors";
 import { useCatalyst, type CatalystState } from "@/lib/catalyst/store";
-import type { CatalystEvent, Direction, Headline } from "@/lib/catalyst/types";
+import type { CatalystEvent, Direction } from "@/lib/catalyst/types";
 import { cn } from "@/lib/utils";
 import { EventRow } from "./event-row";
 import { CallComposer } from "./journal";
@@ -26,68 +29,89 @@ import { EmptyState, Pill, PrimaryButton, SecondaryButton } from "./ui";
 
 export function NowScreen() {
   const store = useCatalyst();
-  const next = nearest(store);
+  const hero = deskHero(store);
   const clock = marketClock(store.now);
-  const ready = deskReadyToScore(store);
-  const open = needsCall(store).filter((e) => e.id !== next?.id && !ready.some((r) => r.id === e.id));
-  const week = thisWeek(store).filter((e) => e.id !== next?.id && !ready.some((r) => r.id === e.id));
-  const followedIds = new Set(store.tickers.map((t) => t.id));
-  const followedMacros = new Set(store.macros.map((m) => m.id));
-  const highTape = store.headlines
-    .filter(
-      (h) =>
-        h.impact === "high" &&
-        ((h.tickerId && followedIds.has(h.tickerId)) || (h.macroId && followedMacros.has(h.macroId))),
-    )
-    .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt))
-    .slice(0, 3);
-
+  const pending = pendingCount(store);
+  const oldest = oldestIncomplete(store);
+  const heroId = hero.kind === "quiet" ? "" : hero.event.id;
+  const week = thisWeek(store).filter((e) => e.id !== heroId);
   const empty = store.tickers.length === 0 && store.macros.length === 0;
-  const briefing = deskBriefing(store, next, ready.length, open.length, highTape.length);
+  const material = materialDeskLine(store, hero.kind === "quiet" ? undefined : hero.event);
 
   return (
     <div className="px-4 pb-28 pt-1">
       <header className="mb-4 flex items-start justify-between pt-1">
         <div className="min-w-0">
-          <h1 className="text-[34px] font-bold leading-none tracking-tight">Now</h1>
+          <h1 className="text-[34px] font-bold leading-none tracking-tight">Desk</h1>
           <p suppressHydrationWarning className="mt-1.5 text-[13px] leading-snug text-[var(--fg-muted)]">
             <span className="session-dot" style={{ background: phaseColor(clock.phase) }} />
             <span className="font-medium text-[var(--fg)]">{clock.label}</span>
             <span className="mx-1.5 text-[var(--fg-faint)]">·</span>
-            {briefing}
+            {deskLine(store, hero)}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => store.push({ name: "settings" })}
-          className="pressable mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-          style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
-          aria-label="Settings"
-        >
-          <GearIcon />
-        </button>
+        <div className="mt-1 flex shrink-0 items-center gap-1">
+          <HeaderBtn label="Watch" onClick={() => store.push({ name: "names" })}>
+            <ListIcon />
+          </HeaderBtn>
+          <HeaderBtn label="Tape" onClick={() => store.push({ name: "news" })}>
+            <NewsIcon />
+          </HeaderBtn>
+          <HeaderBtn label="Settings" onClick={() => store.push({ name: "settings" })}>
+            <GearIcon />
+          </HeaderBtn>
+        </div>
       </header>
 
       {empty ? (
         <EmptyHome />
       ) : (
         <>
-          <TickerRail />
-          {store.lastScore ? (
-            <JustScored />
-          ) : ready[0] ? (
-            <ScoreHero event={ready[0]} more={ready.length - 1} />
-          ) : next ? (
-            <CallHero event={next} />
+          {hero.kind === "result" ? (
+            <ResultHero event={hero.event} />
+          ) : hero.kind === "call" ? (
+            <CallHero event={hero.event} />
           ) : (
             <QuietDay />
           )}
-          {open.length && !store.lastScore && !ready[0] ? <OpenCalls events={open} /> : null}
-          {highTape.length ? <HighTape items={highTape} /> : null}
+
+          {pending > 0 ? (
+            <button
+              type="button"
+              className="mt-4 w-full rounded-[18px] px-4 py-3 text-left"
+              style={{ background: "var(--bg-card)" }}
+              onClick={() => {
+                if (!oldest) return;
+                store.openSheet({ name: "journal", eventId: oldest.eventId });
+              }}
+            >
+              <p className="text-[14px] font-medium">
+                {pending} {pending === 1 ? "call" : "calls"} unfinished. They cannot score yet.
+              </p>
+              {oldest ? (
+                <p className="mt-0.5 text-[12px] text-[var(--fg-muted)]">
+                  Continue at {missingFields(oldest)[0] ?? "the next field"}.
+                </p>
+              ) : null}
+            </button>
+          ) : null}
+
+          {material ? (
+            <button
+              type="button"
+              onClick={() => store.openSheet({ name: "article", id: material.id })}
+              className="mt-3 flex w-full items-center gap-2 rounded-[18px] px-4 py-3 text-left"
+              style={{ background: "var(--bg-card)" }}
+            >
+              <span className="text-[12px] font-semibold text-[var(--color-accent)]">Material</span>
+              <span className="min-w-0 flex-1 truncate text-[13px]">{material.title}</span>
+            </button>
+          ) : null}
+
           {week.length ? (
             <section className="mt-6">
               <h2 className="mb-2 px-1 text-[13px] font-semibold tracking-wide text-[var(--fg-muted)] uppercase">
-                Later this week
+                Later catalysts
               </h2>
               <div className="overflow-hidden rounded-[22px]" style={{ background: "var(--bg-card)" }}>
                 {week.slice(0, 6).map((e, i) => (
@@ -109,28 +133,48 @@ export function NowScreen() {
   );
 }
 
-function deskBriefing(
-  store: CatalystState,
-  next: CatalystEvent | undefined,
-  ready: number,
-  open: number,
-  high: number,
-): string {
-  if (store.lastScore) return store.lastScore.hit ? "You called it." : "Missed. Next print is waiting.";
-  if (ready) return ready === 1 ? "The print is in. Score it." : `${ready} prints to score.`;
-  if (next) {
-    const note = entryFor(store, next.id);
-    const { kicker } = eventLabel(store, next);
-    const tape = high ? ` · ${high} high` : "";
-    const street = next.consensus?.[0];
-    const streetBit = street ? ` · street ${street.consensus}` : "";
-    if (note && isEntryComplete(note)) return `${kicker} is locked.${tape}`;
-    if (note?.direction) return `${kicker} is a draft. Finish it.`;
-    return `${kicker} ${countdown(next.startsAt, store.now)}${streetBit}.`;
+function HeaderBtn({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="pressable flex h-11 w-11 items-center justify-center rounded-full"
+      style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
+      aria-label={label}
+    >
+      {children}
+    </button>
+  );
+}
+
+function deskLine(store: CatalystState, hero: ReturnType<typeof deskHero>): string {
+  if (hero.kind === "result") return "Result ready.";
+  if (hero.kind === "call") {
+    const { kicker } = eventLabel(store, hero.event);
+    return `${kicker} needs a call.`;
   }
-  if (open) return `${open} still open this week.`;
-  if (high) return `${high} high on the tape.`;
-  return "Quiet. The tape is below.";
+  return "Nothing requires action.";
+}
+
+function materialDeskLine(store: CatalystState, current?: CatalystEvent) {
+  const followedIds = new Set(store.tickers.map((t) => t.id));
+  const followedMacros = new Set(store.macros.map((m) => m.id));
+  return store.headlines
+    .filter(
+      (h) =>
+        h.impact === "high" &&
+        ((h.tickerId && followedIds.has(h.tickerId)) || (h.macroId && followedMacros.has(h.macroId))) &&
+        (!current || (current.tickerId ? h.tickerId !== current.tickerId : h.macroId !== current.macroId)),
+    )
+    .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt))[0];
 }
 
 function phaseColor(phase: string) {
@@ -161,7 +205,7 @@ function EmptyHome() {
       actions={
         <>
           <PrimaryButton onClick={() => store.addTicker("NVDA")}>Follow NVDA</PrimaryButton>
-          <SecondaryButton onClick={() => store.setTab("names")}>Search names</SecondaryButton>
+          <SecondaryButton onClick={() => store.push({ name: "names" })}>Search names</SecondaryButton>
         </>
       }
     />
@@ -171,127 +215,71 @@ function EmptyHome() {
 function QuietDay() {
   return (
     <div className="rounded-[28px] px-5 py-8 text-center" style={{ background: "var(--bg-card)" }}>
-      <p className="text-[20px] font-semibold tracking-tight">Nothing on the tape</p>
+      <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--fg-faint)]">Quiet</p>
+      <p className="mt-3 text-[20px] font-semibold tracking-tight">Nothing requires action</p>
       <p className="mt-2 text-[15px] leading-relaxed text-[var(--fg-muted)]">
-        No followed print is due. When one lands, it shows up here first.
+        No followed print needs a call, and nothing is waiting to resolve.
       </p>
     </div>
   );
 }
 
-function TickerRail() {
-  const store = useCatalyst();
-  if (!store.tickers.length && !store.macros.length) return null;
-  return (
-    <div className="mb-4 min-w-0 max-w-full overflow-x-auto hide-scroll">
-      <div className="flex w-max gap-2 pb-1">
-        {store.tickers.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => store.push({ name: "ticker", id: t.id })}
-            className="pressable flex h-11 shrink-0 items-center gap-2 rounded-full px-3.5"
-            style={{ background: "var(--bg-card)" }}
-          >
-            <span className="text-[14px] font-semibold">{t.symbol}</span>
-            {store.headlines.some((h) => h.tickerId === t.id && h.impact === "high") ? (
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--color-negative)" }} />
-            ) : null}
-            <span className={cn("num text-[12px] font-medium", t.changePct >= 0 ? "pos" : "neg")}>
-              {formatPct(t.changePct)}
-            </span>
-          </button>
-        ))}
-        {store.macros.map((m) => {
-          const ev = store.events
-            .filter((e) => e.macroId === m.id)
-            .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))
-            .find((e) => +new Date(e.startsAt) >= store.now - 30 * 60000);
-          return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => (ev ? store.push({ name: "event", id: ev.id }) : store.setTab("names"))}
-              className="pressable flex h-11 shrink-0 items-center rounded-full px-3.5"
-              style={{ background: "var(--bg-card)" }}
-            >
-              <span className="text-[14px] font-semibold">{m.shortName}</span>
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          onClick={() => store.openSheet({ name: "add" })}
-          className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[20px] font-medium"
-          style={{ background: "var(--bg-card)", color: "var(--fg)" }}
-          aria-label="Add a name"
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function JustScored() {
-  const store = useCatalyst();
-  const result = store.lastScore;
-  if (!result) return null;
-  return (
-    <div className="rounded-[28px] p-5" style={{ background: "var(--bg-card)" }}>
-      <p
-        className="text-[12px] font-semibold uppercase tracking-wider"
-        style={{ color: result.hit ? "var(--color-positive)" : "var(--color-negative)" }}
-      >
-        {result.hit ? "Called" : "Missed"}
-      </p>
-      <p className="mt-3 text-[15px] font-semibold tracking-tight">{result.kicker}</p>
-      <h2 className="mt-0.5 text-[22px] font-bold leading-tight tracking-tight text-balance">{result.title}</h2>
-      <p className="mt-4 text-[15px]">
-        You: <span className={cn("font-semibold", dirClass(result.predicted))}>{dirLabel(result.predicted)}</span>
-        <span className="mx-2 text-[var(--fg-faint)]">·</span>
-        Tape:{" "}
-        <span className={cn("font-semibold", dirClass(result.actual))}>
-          {formatPct(result.movePct)} {dirLabel(result.actual)}
-        </span>
-      </p>
-      <div className="mt-5">
-        <PrimaryButton onClick={() => store.dismissLastScore()}>Next</PrimaryButton>
-      </div>
-    </div>
-  );
-}
-
-function ScoreHero({ event, more }: { event: CatalystEvent; more: number }) {
+function ResultHero({ event }: { event: CatalystEvent }) {
   const store = useCatalyst();
   const { kicker } = eventLabel(store, event);
   const note = entryFor(store, event.id);
   const print = suggestedPrint(store, event);
+  const scored = note?.actualDirection != null;
+
+  useEffect(() => {
+    if (!scored && print) store.applyPrintScore(event.id);
+  }, [event.id, scored, print]);
+
+  const result = store.lastScore?.eventId === event.id ? store.lastScore : null;
+  const hit = result ? result.hit : note?.direction === note?.actualDirection;
+
   return (
     <div className="rounded-[28px] p-5" style={{ background: "var(--bg-card)" }}>
-      <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--color-accent)]">The print is in</p>
+      <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--color-accent)]">Result ready</p>
+      <EventBead startsAt={event.startsAt} now={store.now} locked resolved />
       <p className="mt-3 text-[15px] font-semibold tracking-tight">{kicker}</p>
       <h2 className="mt-0.5 text-[22px] font-bold leading-tight tracking-tight text-balance">{event.title}</h2>
       {note?.direction ? (
         <p className="mt-3 text-[15px]">
           You called{" "}
           <span className={cn("font-semibold", dirClass(note.direction))}>{dirLabel(note.direction)}</span>
-          {note.conviction ? <span className="text-[var(--fg-muted)]"> · {note.conviction}</span> : null}
+          {note.conviction ? <span className="text-[var(--fg-muted)]"> · {note.conviction}/5</span> : null}
         </p>
       ) : null}
-      {print ? (
-        <p className={cn("num mt-1 text-[15px] font-medium", dirClass(print.direction))}>
-          {formatPct(print.movePct)} next session
+      {(result || note?.actualMovePct != null) && (
+        <p className={cn("num mt-1 text-[15px] font-medium", dirClass(result?.actual ?? note?.actualDirection))}>
+          {formatPct(result?.movePct ?? note?.actualMovePct ?? 0)} · {dirLabel(result?.actual ?? note?.actualDirection)}
+        </p>
+      )}
+      <p
+        className="mt-3 text-[15px] font-semibold"
+        style={{ color: hit ? "var(--color-positive)" : "var(--color-negative)" }}
+      >
+        {hit ? "Called it" : "Missed"}
+      </p>
+      {note?.invalidation ? (
+        <p className="mt-3 text-[13px] leading-snug text-[var(--fg-muted)]">
+          You said: “{note.invalidation}”
+          <span className="mt-1 block text-[12px] text-[var(--fg-faint)]">
+            {note.actualFigure ?? "Manual review needed"} · Invalidation: manual review needed
+          </span>
         </p>
       ) : null}
       <div className="mt-5">
-        <PrimaryButton onClick={() => store.applyPrintScore(event.id)}>Score this call</PrimaryButton>
+        <PrimaryButton
+          onClick={() => {
+            store.dismissLastScore();
+            store.push({ name: "event", id: event.id });
+          }}
+        >
+          Review the call
+        </PrimaryButton>
       </div>
-      {more > 0 ? (
-        <p className="mt-3 text-center text-[13px] text-[var(--fg-muted)]">
-          {more} more {more === 1 ? "print" : "prints"} after this
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -300,27 +288,35 @@ function CallHero({ event }: { event: CatalystEvent }) {
   const store = useCatalyst();
   const { kicker } = eventLabel(store, event);
   const note = entryFor(store, event.id);
-  const complete = note ? isEntryComplete(note) : false;
+  const complete = note ? isEntryComplete(note) && Boolean(note.lockedAt) : false;
   const [editing, setEditing] = useState(false);
   const showPad = !complete || editing;
-  const typical = event.tickerId ? typicalSessionPct(store.sparks[event.tickerId]?.["1M"] ?? []) : null;
+  const typical = typicalFor(store, event, note?.callTarget);
+  const band = typical != null ? flatBandPct(typical) : null;
   const street = event.consensus?.slice(0, 3) ?? [];
   const last = lastSimilarEvent(store, event);
   const lastNote = last ? entryFor(store, last.id) : undefined;
   const setup = setupHeadline(store.headlines, event);
+  const prints = event.tickerId ? store.earningsHistory[event.tickerId] ?? [] : [];
+  const target = note?.callTarget ? store.tickers.find((t) => t.id === note.callTarget) : undefined;
 
   return (
     <div className="rounded-[28px] p-5" style={{ background: "var(--bg-card)" }}>
-      <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--fg-faint)]">Next</p>
+      <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--color-accent)]">
+        Make the next call
+      </p>
+      <EventBead startsAt={event.startsAt} now={store.now} locked={Boolean(note?.lockedAt)} />
       <p className="mt-3 text-[15px] font-semibold tracking-tight">{kicker}</p>
       <h2 className="mt-0.5 text-[22px] font-bold leading-tight tracking-tight text-balance">{event.title}</h2>
       <p suppressHydrationWarning className="mt-1 text-[13px] text-[var(--fg-muted)]">
-        {kindLabel(event)} · {formatWhen(event.startsAt)}
+        {kindLabel(event)} · {formatWhen(event.startsAt)} · {sessionLabel(event.session)}
         {event.confirmed ? "" : " · Est."}
       </p>
-      <p suppressHydrationWarning className="display-num mt-4 text-[48px] leading-none" style={{ color: "var(--fg)" }}>
-        {countdown(event.startsAt, store.now)}
-      </p>
+      {event.kind === "macro" && target ? (
+        <p className="mt-1 text-[13px] text-[var(--fg)]">
+          {kicker} · {target.symbol}, next session
+        </p>
+      ) : null}
       {street.length ? (
         <dl className="mt-4 overflow-hidden rounded-[16px]" style={{ background: "var(--bg-elevated)" }}>
           {street.map((row, i) => (
@@ -338,15 +334,23 @@ function CallHero({ event }: { event: CatalystEvent }) {
           ))}
         </dl>
       ) : null}
-      {typical != null ? (
-        <p className="mt-2 text-[12px] text-[var(--fg-muted)]">Typical session ±{typical.toFixed(1)}%</p>
+      {typical != null && band != null ? (
+        <p className="mt-2 text-[12px] text-[var(--fg-muted)]">
+          Typical session ±{typical.toFixed(1)}% · Flat band ±{band.toFixed(1)}%
+        </p>
       ) : null}
-      {event.consensusSource ? (
-        <p className="mt-1 text-[11px] text-[var(--fg-faint)]">{event.consensusSource}</p>
+      {prints.length ? (
+        <p className="mt-2 text-[12px] leading-snug text-[var(--fg-muted)]">
+          Last {prints.length} EPS surprises:{" "}
+          {prints
+            .slice(0, 4)
+            .map((p) => (p.surprisePct == null ? "—" : `${p.surprisePct > 0 ? "+" : ""}${p.surprisePct.toFixed(1)}%`))
+            .join("  ")}
+        </p>
       ) : null}
       {last && lastNote?.actualMovePct != null ? (
-        <p className="mt-3 text-[13px] leading-snug text-[var(--fg-muted)]">
-          Last {last.title}
+        <p className="mt-2 text-[13px] leading-snug text-[var(--fg-muted)]">
+          Last comparable print
           <span className={cn("num ml-1.5 font-semibold", lastNote.actualMovePct >= 0 ? "pos" : "neg")}>
             {formatPct(lastNote.actualMovePct)}
           </span>
@@ -361,8 +365,9 @@ function CallHero({ event }: { event: CatalystEvent }) {
           onClick={() => store.openSheet({ name: "article", id: setup.id })}
           className="mt-3 flex w-full items-center gap-2 text-left"
         >
-          <Pill tone={impactTone(setup.impact)}>{impactCaption(setup.impact)}</Pill>
+          <Pill tone="accent">{impactLabel(setup.impact)}</Pill>
           <span className="min-w-0 flex-1 truncate text-[13px]">{setup.title}</span>
+          <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(setup.kind)}</span>
         </button>
       ) : null}
 
@@ -373,9 +378,12 @@ function CallHero({ event }: { event: CatalystEvent }) {
       ) : (
         <div className="mt-5">
           <p className="text-center text-[15px] font-medium" style={{ color: "var(--color-positive)" }}>
-            Call in · {dirLabel(note?.direction)}
+            Locked · {dirLabel(note?.direction)}
             {note?.conviction ? ` · ${note.conviction}` : ""}
           </p>
+          {note?.lockedAt ? (
+            <p className="mt-1 text-center text-[12px] text-[var(--fg-faint)]">{formatWhen(note.lockedAt)}</p>
+          ) : null}
           {note?.reasoning ? (
             <p className="mt-2 text-center text-[13px] leading-snug text-[var(--fg-muted)]">{note.reasoning}</p>
           ) : null}
@@ -399,96 +407,27 @@ function CallHero({ event }: { event: CatalystEvent }) {
   );
 }
 
-function OpenCalls({ events }: { events: CatalystEvent[] }) {
-  const store = useCatalyst();
+function ListIcon() {
   return (
-    <section className="mt-6">
-      <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
-        Still open
-      </h2>
-      <div className="overflow-hidden rounded-[22px]" style={{ background: "var(--bg-card)" }}>
-        {events.slice(0, 4).map((e, i) => {
-          const { kicker } = eventLabel(store, e);
-          const note = entryFor(store, e.id);
-          return (
-            <button
-              key={e.id}
-              type="button"
-              onClick={() => store.openSheet({ name: "journal", eventId: e.id })}
-              className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
-              style={{ boxShadow: i < Math.min(events.length, 4) - 1 ? "inset 0 -0.5px 0 var(--hairline)" : undefined }}
-            >
-              <span className="min-w-0">
-                <span className="block truncate text-[16px] font-semibold">
-                  {kicker} · {e.title}
-                </span>
-                <span className="text-[12px] text-[var(--fg-muted)]">
-                  {note ? "Draft" : "No call"} · {countdown(e.startsAt, store.now)}
-                </span>
-              </span>
-              <span className="shrink-0 text-[14px] font-semibold text-[var(--color-accent)]">
-                {note ? "Finish" : "Write"}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
+    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden>
+      <path d="M5 6H17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M5 11H17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M5 16H13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
-
-function HighTape({ items }: { items: Headline[] }) {
-  const store = useCatalyst();
+function NewsIcon() {
   return (
-    <section className="mt-6">
-      <div className="mb-2 flex items-baseline justify-between px-1">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">High on the tape</h2>
-        <button
-          type="button"
-          className="text-[13px] font-medium text-[var(--color-accent)]"
-          onClick={() => store.setTab("news")}
-        >
-          See all
-        </button>
-      </div>
-      <div className="overflow-hidden rounded-[22px]" style={{ background: "var(--bg-card)" }}>
-        {items.map((h, i) => {
-          const ticker = store.tickers.find((t) => t.id === h.tickerId);
-          const kicker = ticker?.symbol ?? store.macros.find((m) => m.id === h.macroId)?.shortName ?? "—";
-          return (
-            <button
-              key={h.id}
-              type="button"
-              onClick={() => store.openSheet({ name: "article", id: h.id })}
-              className="flex w-full gap-3 px-3.5 py-3 text-left"
-              style={{ boxShadow: i < items.length - 1 ? "inset 0 -0.5px 0 var(--hairline)" : undefined }}
-            >
-              <span className="mt-1 h-10 w-[3px] shrink-0 rounded-full" style={{ background: "var(--color-negative)" }} />
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="text-[12px] font-semibold">{kicker}</span>
-                  <Pill tone="neg">{impactCaption(h.impact)}</Pill>
-                  <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(h.kind)}</span>
-                </span>
-                <span className="mt-1 block text-[15px] font-medium leading-snug">{h.title}</span>
-                {h.why ? (
-                  <span className="mt-1 block text-[12px] leading-snug text-[var(--fg-muted)]">{h.why}</span>
-                ) : null}
-                <span className="mt-1 block text-[12px] text-[var(--fg-faint)]">
-                  {h.source} · {ageLabel(h.publishedAt, store.now)}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
+    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden>
+      <rect x="4" y="4.5" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M7 9H15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M7 12.5H12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
-
 function GearIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 22 22" fill="none" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden>
       <circle cx="11" cy="11" r="3" stroke="currentColor" strokeWidth="1.7" />
       <path
         d="M11 3.5V5.5M11 16.5V18.5M3.5 11H5.5M16.5 11H18.5M5.8 5.8L7.2 7.2M14.8 14.8L16.2 16.2M16.2 5.8L14.8 7.2M7.2 14.8L5.8 16.2"

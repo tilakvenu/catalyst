@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { countdown } from "@/lib/catalyst/format";
-import { eventLabel, inboxCount, nearest, pendingCount } from "@/lib/catalyst/selectors";
+import { eventLabel, nearest } from "@/lib/catalyst/selectors";
 import { useCatalyst, useCurrentScreen } from "@/lib/catalyst/store";
 import { cn } from "@/lib/utils";
 import { EventScreen } from "./event";
@@ -11,6 +11,7 @@ import { CatalystMark } from "./mark";
 import { NowScreen } from "./now";
 import { ReviewScreen } from "./review";
 import { SettingsScreen } from "./settings";
+import { SimulationScreen } from "./simulation";
 import { TickerScreen } from "./ticker";
 import { WatchlistScreen, WatchlistSheets } from "./watchlist";
 
@@ -22,6 +23,7 @@ export function CatalystApp() {
     const onHydrate = () => {
       if (useCatalyst.persist.hasHydrated()) {
         useCatalyst.setState({ hydrated: true, now: Date.now() });
+        useCatalyst.getState().autoResolve();
         void useCatalyst.getState().scanLive();
       }
     };
@@ -42,7 +44,7 @@ export function CatalystApp() {
           <PhoneBody />
         </DeviceFrame>
         <p className="mt-6 hidden text-[13px] tracking-tight text-[var(--color-studio-muted)] lg:block">
-          The call, then the score.
+          Call it. Lock it. Learn from it.
         </p>
       </div>
     </div>
@@ -143,11 +145,13 @@ function PhoneBody() {
             <EventScreen id={screen.id} />
           ) : screen.name === "settings" ? (
             <SettingsScreen />
-          ) : screen.name === "news" || (onTab && store.tab === "news") ? (
+          ) : screen.name === "simulation" ? (
+            <SimulationScreen />
+          ) : screen.name === "news" ? (
             <NewsScreen />
-          ) : screen.name === "names" || (onTab && store.tab === "names") ? (
+          ) : screen.name === "names" ? (
             <WatchlistScreen />
-          ) : screen.name === "record" || (onTab && store.tab === "record") ? (
+          ) : onTab && store.tab === "record" ? (
             <ReviewScreen />
           ) : (
             <NowScreen />
@@ -210,24 +214,13 @@ function Banner() {
 
 function TabBar() {
   const store = useCatalyst();
-  const pending = pendingCount(store);
-  const inbox = inboxCount(store);
-  const followedIds = new Set(store.tickers.map((t) => t.id));
-  const followedMacros = new Set(store.macros.map((m) => m.id));
-  const highNews = store.headlines.filter(
-    (h) =>
-      h.impact === "high" &&
-      ((h.tickerId && followedIds.has(h.tickerId)) || (h.macroId && followedMacros.has(h.macroId))),
-  ).length;
   const items = [
-    { id: "now" as const, label: "Now", icon: NowIcon, badge: inbox },
-    { id: "names" as const, label: "Names", icon: ListIcon },
-    { id: "news" as const, label: "News", icon: NewsIcon, badge: highNews },
-    { id: "record" as const, label: "Record", icon: ChartIcon, badge: pending },
+    { id: "now" as const, label: "Desk", icon: NowIcon },
+    { id: "record" as const, label: "Record", icon: ChartIcon },
   ];
   return (
     <nav className="pointer-events-none absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
-      <div className="pointer-events-auto sheen glass flex h-[62px] w-full max-w-[340px] items-stretch rounded-full px-1.5">
+      <div className="pointer-events-auto sheen glass flex h-[62px] w-full max-w-[280px] items-stretch rounded-full px-1.5">
         {items.map((it) => {
           const on = store.tab === it.id;
           const Icon = it.icon;
@@ -239,10 +232,7 @@ function TabBar() {
               className="flex flex-1 flex-col items-center justify-center gap-0.5"
               style={{ color: on ? "var(--color-accent)" : "var(--tab-idle)" }}
             >
-              <span className="relative">
-                <Icon active={on} />
-                {it.badge ? <span className="tab-badge">{it.badge > 9 ? "9+" : it.badge}</span> : null}
-              </span>
+              <Icon active={on} />
               <span className="text-[10px] font-medium">{it.label}</span>
             </button>
           );
@@ -276,32 +266,6 @@ function NowIcon({ active }: { active: boolean }) {
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
       <circle cx="11" cy="11" r="7.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
       <circle cx="11" cy="11" r="2.25" fill="currentColor" />
-    </svg>
-  );
-}
-function ListIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <path d="M5 6H17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-      <path d="M5 11H17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-      <path d="M5 16H13" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-    </svg>
-  );
-}
-function NewsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <rect
-        x="4"
-        y="4.5"
-        width="14"
-        height="13"
-        rx="2.5"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-      />
-      <path d="M7 9H15" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-      <path d="M7 12.5H12" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
     </svg>
   );
 }

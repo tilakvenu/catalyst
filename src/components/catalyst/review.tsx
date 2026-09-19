@@ -1,8 +1,18 @@
 import { useMemo, useState } from "react";
 import { EMPTY_COPY } from "@/lib/catalyst/fixtures";
 import { formatPct, formatWhen } from "@/lib/catalyst/format";
-import { convictionBands, capturedMove, rollingAccuracy } from "@/lib/catalyst/scoring";
-import { eventLabel, isPending, isScored, kindLabel, missingFields, suggestedPrint } from "@/lib/catalyst/selectors";
+import {
+  CALIBRATION_MIN_BAND,
+  CALIBRATION_MIN_OVERALL,
+  calibrationCopy,
+  capturedMove,
+  convictionBands,
+  isCalibrationScored,
+  isPreC67Scored,
+  isUnresolvable,
+  rollingAccuracy,
+} from "@/lib/catalyst/scoring";
+import { eventLabel, isPending, isScored, kindLabel, missingFields } from "@/lib/catalyst/selectors";
 import { useCatalyst } from "@/lib/catalyst/store";
 import type { JournalEntry } from "@/lib/catalyst/types";
 import { cn } from "@/lib/utils";
@@ -34,8 +44,11 @@ export function ReviewScreen() {
   }
 
   const scoredAll = store.entries.filter((e) => isScored(e, store.now));
+  const calAll = store.entries.filter((e) => isCalibrationScored(e, store.now));
+  const preC67 = store.entries.filter((e) => isPreC67Scored(e, store.now));
   const pendingAll = store.entries.filter((e) => isPending(e, store.now));
-  const scored = scoredAll.filter(matchesFilters);
+  const unresolvable = store.entries.filter((e) => isUnresolvable(e));
+  const scored = calAll.filter(matchesFilters);
   const pending = pendingAll.filter(matchesFilters);
   const hiddenPending = pendingAll.length - pending.length;
   const hits = scored.filter((e) => e.direction && e.actualDirection && e.direction === e.actualDirection);
@@ -43,6 +56,7 @@ export function ReviewScreen() {
   const series = rollingAccuracy(scored, 5);
   const bands = convictionBands(scored);
   const captured = capturedMove(scored);
+  const calib = calibrationCopy(bands, scored.length);
   const chips: { id: string; label: string; clear: () => void }[] = [];
   if (tickerF !== "all") {
     const t = store.tickers.find((x) => x.id === tickerF);
@@ -52,25 +66,54 @@ export function ReviewScreen() {
   if (kindF !== "all") chips.push({ id: "k", label: kindF, clear: () => setKindF("all") });
   if (convF !== "all") chips.push({ id: "c", label: `Conviction ${convF}`, clear: () => setConvF("all") });
 
+  const byKind = [
+    { id: "earnings", label: "Earnings", rows: scored.filter((e) => store.events.find((x) => x.id === e.eventId)?.kind === "earnings") },
+    { id: "macro", label: "Macro", rows: scored.filter((e) => store.events.find((x) => x.id === e.eventId)?.kind === "macro") },
+  ].filter((g) => g.rows.length >= 8);
+  const byDir = (["up", "down", "flat"] as const)
+    .map((d) => ({
+      id: d,
+      label: d,
+      rows: scored.filter((e) => e.direction === d),
+    }))
+    .filter((g) => g.rows.length >= 8);
+
   return (
     <div className="px-4 pb-28 pt-1">
       <header className="mb-3 pt-1">
         <h1 className="text-[34px] font-bold leading-none tracking-tight">Record</h1>
-        {pendingAll.length ? (
-          <p className="mt-1.5 text-[13px] text-[var(--fg-muted)]">
-            {pendingAll.length} pending {pendingAll.length === 1 ? "call" : "calls"}
-          </p>
-        ) : null}
+        <p className="mt-1.5 text-[13px] text-[var(--fg-muted)]">What your history says about your judgment.</p>
       </header>
 
       <div className="rounded-[22px] p-4" style={{ background: "var(--bg-card)" }}>
-        <p className="text-[13px] uppercase tracking-wide text-[var(--fg-faint)]">Accuracy</p>
-        <p className="display-num mt-1 text-[56px]" style={{ color: "var(--fg)" }}>
-          {scored.length ? `${pct}` : "—"}
-          {scored.length ? <span className="text-[24px] text-[var(--fg-muted)]">%</span> : null}
-        </p>
-        <p className="num text-[14px] text-[var(--fg-muted)]">
-          {hits.length} of {scored.length} scored calls
+        <p className="text-[13px] uppercase tracking-wide text-[var(--fg-faint)]">Your confidence</p>
+        {bands.length ? (
+          <div className="mt-3 flex flex-col gap-2">
+            {bands.map((b) => (
+              <div key={b.id} className="flex items-baseline justify-between gap-3">
+                <p className="text-[15px]">Conviction {b.label}</p>
+                <p className="num text-[15px] font-semibold">
+                  {b.pct}% <span className="text-[12px] font-medium text-[var(--fg-muted)]">n = {b.n}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-[15px] text-[var(--fg-muted)]">No C67 scored calls yet.</p>
+        )}
+        {scored.length < CALIBRATION_MIN_OVERALL || bands.some((b) => b.n < CALIBRATION_MIN_BAND && bands.length > 1) ? (
+          <p className="mt-3 text-[13px] leading-snug text-[var(--fg-muted)]">
+            {hits.length} of {scored.length} scored calls. Calibration needs more observations.
+          </p>
+        ) : calib.text ? (
+          <p className="mt-3 text-[13px] leading-snug text-[var(--fg-muted)]">{calib.text}</p>
+        ) : (
+          <p className="mt-3 text-[13px] leading-snug text-[var(--fg-muted)]">
+            {hits.length} of {scored.length} scored calls under Catalyst’s scoring rule v1.
+          </p>
+        )}
+        <p className="mt-3 num text-[13px] text-[var(--fg-faint)]">
+          Overall {scored.length ? `${pct}%` : "—"} · n = {scored.length}
         </p>
         {captured.hitAvg != null ? (
           <p className="mt-2 text-[13px] leading-snug text-[var(--fg-muted)]">
@@ -82,25 +125,41 @@ export function ReviewScreen() {
           <div className="mt-2">
             <AccuracyChart points={series} />
           </div>
-        ) : (
-          <p className="mt-3 text-[13px] text-[var(--fg-faint)]">
-            The rolling line appears once two scored calls exist under the current filters.
-          </p>
-        )}
-        {bands.length ? (
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            {bands.map((b) => (
-              <div key={b.id} className="rounded-[12px] px-2 py-2 text-center" style={{ background: "var(--bg-elevated)" }}>
-                <p className="text-[11px] text-[var(--fg-faint)]">Conv {b.label}</p>
-                <p className="num mt-0.5 text-[18px] font-semibold">{b.pct}%</p>
-                <p className="text-[11px] text-[var(--fg-muted)]">
-                  {b.hits}/{b.n}
-                </p>
-              </div>
-            ))}
-          </div>
         ) : null}
       </div>
+
+      {preC67.length ? (
+        <p className="mt-3 px-1 text-[12px] leading-snug text-[var(--fg-faint)]">
+          Earlier scores (pre-C67 rule) · n = {preC67.length} · excluded from calibration.
+        </p>
+      ) : null}
+      {unresolvable.length ? (
+        <p className="mt-1 px-1 text-[12px] leading-snug text-[var(--fg-faint)]">
+          Unresolvable · n = {unresolvable.length} · excluded from accuracy.
+        </p>
+      ) : null}
+
+      {byKind.length || byDir.length ? (
+        <div className="mt-4 rounded-[22px] p-4" style={{ background: "var(--bg-card)" }}>
+          <p className="text-[12px] uppercase tracking-wide text-[var(--fg-faint)]">Observed in your record</p>
+          {byKind.map((g) => {
+            const h = g.rows.filter((e) => e.direction === e.actualDirection).length;
+            return (
+              <p key={g.id} className="mt-2 text-[14px]">
+                {g.label} {Math.round((h / g.rows.length) * 100)}% · n = {g.rows.length}
+              </p>
+            );
+          })}
+          {byDir.map((g) => {
+            const h = g.rows.filter((e) => e.direction === e.actualDirection).length;
+            return (
+              <p key={g.id} className="mt-2 text-[14px] capitalize">
+                {g.label} {Math.round((h / g.rows.length) * 100)}% · n = {g.rows.length}
+              </p>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div className="mt-3 grid grid-cols-3 gap-1.5">
         <select
@@ -160,17 +219,6 @@ export function ReviewScreen() {
               {c.label} ×
             </button>
           ))}
-          <button
-            type="button"
-            className="text-[12px] font-medium text-[var(--color-accent)]"
-            onClick={() => {
-              setTickerF("all");
-              setKindF("all");
-              setConvF("all");
-            }}
-          >
-            Clear all
-          </button>
         </div>
       ) : null}
 
@@ -187,7 +235,6 @@ export function ReviewScreen() {
             if (!ev) return null;
             const miss = missingFields(e);
             const label = eventLabel(store, ev);
-            const print = suggestedPrint(store, ev);
             return (
               <div key={e.id} className="rounded-[18px] p-3.5" style={{ background: "var(--bg-card)" }}>
                 <div className="flex items-start justify-between gap-2">
@@ -195,32 +242,26 @@ export function ReviewScreen() {
                     <p className="text-[15px] font-semibold">
                       {label.kicker} · {ev.title}
                     </p>
-                    <p className="text-[12px]" style={{ color: print ? "var(--color-positive)" : "var(--color-accent)" }}>
-                      {miss.length
-                        ? miss.map((m) => `${m} missing`).join(" · ")
-                        : print
-                          ? `Print in · ${print.movePct >= 0 ? "+" : ""}${print.movePct.toFixed(2)}%`
-                          : "Awaiting next-day print"}
+                    <p className="text-[12px] text-[var(--fg-muted)]">
+                      {miss.length ? miss.map((m) => `${m} missing`).join(" · ") : "Awaiting the resolving session close"}
                     </p>
                   </div>
-                  {print ? (
+                  {miss.length ? (
                     <button
                       type="button"
                       className="h-8 rounded-full px-3 text-[12px] font-semibold fill-accent"
-                      onClick={() => store.applyPrintScore(ev.id)}
+                      onClick={() => store.openSheet({ name: "journal", eventId: ev.id })}
                     >
-                      Score
+                      Continue
                     </button>
                   ) : (
                     <button
                       type="button"
-                      className="h-8 rounded-full px-3 text-[12px] font-semibold fill-accent"
-                      onClick={() => {
-                        store.push({ name: "event", id: ev.id });
-                        store.openSheet({ name: "journal", eventId: ev.id });
-                      }}
+                      className="h-8 rounded-full px-3 text-[12px] font-semibold"
+                      style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
+                      onClick={() => store.push({ name: "event", id: ev.id })}
                     >
-                      Complete
+                      Open
                     </button>
                   )}
                 </div>
@@ -233,9 +274,35 @@ export function ReviewScreen() {
         </div>
       </div>
 
+      {unresolvable.length ? (
+        <div className="mt-6">
+          <h2 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Unresolvable</h2>
+          <div className="mt-2 flex flex-col gap-2">
+            {unresolvable.map((e) => {
+              const ev = store.events.find((x) => x.id === e.eventId);
+              if (!ev) return null;
+              return (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => store.push({ name: "event", id: ev.id })}
+                  className="rounded-[18px] p-3.5 text-left"
+                  style={{ background: "var(--bg-card)" }}
+                >
+                  <p className="text-[15px] font-semibold">
+                    {eventLabel(store, ev).kicker} · {ev.title}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[var(--fg-muted)]">{e.actualFigure ?? "Could not obtain a resolving move."}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-6">
         <h2 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Scored calls</h2>
-        {scored.length === 0 ? (
+        {scored.length === 0 && scoredAll.length === 0 ? (
           <EmptyState
             title={EMPTY_COPY.reviewTitle}
             body={EMPTY_COPY.reviewBody}
@@ -283,16 +350,21 @@ export function ReviewScreen() {
                       </div>
                     </div>
                     <p className="mt-2 text-[12px] text-[var(--fg-muted)]">
-                      Conviction {e.conviction}/5 · {kindLabel(ev)}
+                      Conviction {e.conviction}/5 · {kindLabel(ev)} · n counted
                     </p>
                     {e.actualMovePct != null ? (
                       <p className={cn("num mt-1 text-[14px] font-medium", e.actualMovePct >= 0 ? "pos" : "neg")}>
-                        Next-day {formatPct(e.actualMovePct)}
+                        Observed {formatPct(e.actualMovePct)}
                         {e.actualMoveDate ? ` · ${formatWhen(e.actualMoveDate)}` : ""}
                       </p>
                     ) : null}
-                    {e.actualFigure ? (
-                      <p className="mt-2 text-[13px] leading-snug text-[var(--fg-muted)]">{e.actualFigure}</p>
+                    {e.invalidation ? (
+                      <p className="mt-2 text-[13px] leading-snug text-[var(--fg-muted)]">
+                        Wrong if: {e.invalidation}
+                        <span className="mt-0.5 block text-[12px] text-[var(--fg-faint)]">
+                          {e.actualFigure ?? "Manual review needed"} · Invalidation: manual review needed
+                        </span>
+                      </p>
                     ) : null}
                   </button>
                 );

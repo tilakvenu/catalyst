@@ -1,11 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import { countdown, formatPct, formatPrice } from "@/lib/catalyst/format";
-import { thisWeek, upcomingFollowed } from "@/lib/catalyst/selectors";
+import { materialChangeCount, thisWeek, upcomingFollowed } from "@/lib/catalyst/selectors";
 import { MACRO_CATALOG, useCatalyst } from "@/lib/catalyst/store";
 import type { MacroItem, Ticker, WatchFilter } from "@/lib/catalyst/types";
 import { SEARCH_UNIVERSE } from "@/lib/catalyst/universe";
 import { cn } from "@/lib/utils";
-import { EmptyState, Pill, PrimaryButton, SecondaryButton, SheetFrame } from "./ui";
+import { EmptyState, Pill, PrimaryButton, SecondaryButton, SheetFrame, TopBar } from "./ui";
 
 function useReveal(open: boolean, onToggle: () => void, onOpen: () => void) {
   const startX = useRef<number | null>(null);
@@ -35,6 +35,7 @@ export function WatchlistScreen() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<WatchFilter>("all");
   const [openSwipe, setOpenSwipe] = useState<string | null>(null);
+  const canPop = store.stack.length > 0;
 
   const held = store.tickers.filter((t) => t.held).length;
   const allCount = store.tickers.length + store.macros.length;
@@ -56,18 +57,33 @@ export function WatchlistScreen() {
   }, [q]);
 
   return (
-    <div className="px-4 pb-28 pt-1">
-      <header className="mb-3 flex items-end justify-between pt-1">
-        <h1 className="text-[34px] font-bold leading-none tracking-tight">Names</h1>
-        <button
-          type="button"
-          onClick={() => store.openSheet({ name: "add" })}
-          className="pressable flex h-11 w-11 items-center justify-center rounded-full fill-accent text-[22px] font-medium"
-          aria-label="Add"
-        >
-          +
-        </button>
-      </header>
+    <div className="px-4 pb-10 pt-1">
+      {canPop ? (
+        <div className="-mx-2 mb-1">
+          <TopBar title="Watch" onBack={() => store.pop()} trailing={
+            <button
+              type="button"
+              onClick={() => store.openSheet({ name: "add" })}
+              className="pressable mr-1 flex h-11 w-11 items-center justify-center rounded-full fill-accent text-[22px] font-medium"
+              aria-label="Add"
+            >
+              +
+            </button>
+          } />
+        </div>
+      ) : (
+        <header className="mb-3 flex items-end justify-between pt-1">
+          <h1 className="text-[34px] font-bold leading-none tracking-tight">Watch</h1>
+          <button
+            type="button"
+            onClick={() => store.openSheet({ name: "add" })}
+            className="pressable flex h-11 w-11 items-center justify-center rounded-full fill-accent text-[22px] font-medium"
+            aria-label="Add"
+          >
+            +
+          </button>
+        </header>
+      )}
 
       <label className="mb-3 block">
         <span className="sr-only">Search ticker or event</span>
@@ -211,6 +227,7 @@ function TickerRow({
   const swipe = useReveal(open, onToggle, onOpen);
   const next = upcomingFollowed(store).find((e) => e.tickerId === item.id);
   const up = item.changePct >= 0;
+  const material = materialChangeCount(store.headlines, item.id);
   const highStory = store.headlines
     .filter((h) => h.tickerId === item.id && h.impact === "high")
     .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt))[0];
@@ -249,9 +266,6 @@ function TickerRow({
         <span className="min-w-0">
           <span className="flex items-baseline gap-2">
             <span className="text-[16px] font-semibold">{item.symbol}</span>
-            {store.headlines.some((h) => h.tickerId === item.id && h.impact === "high") ? (
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--color-negative)" }} />
-            ) : null}
             <span className="truncate text-[13px] text-[var(--fg-muted)]">{item.company}</span>
           </span>
           <span className="mt-1 block text-[12px] text-[var(--fg-faint)]">
@@ -259,8 +273,8 @@ function TickerRow({
             {item.muted ? " · Muted" : ""}
           </span>
           {highStory ? (
-            <span className="mt-1 block truncate text-[12px]" style={{ color: "var(--color-negative)" }}>
-              High · {highStory.title}
+            <span className="mt-1 block truncate text-[12px] text-[var(--color-accent)]">
+              {material} material {material === 1 ? "change" : "changes"}
             </span>
           ) : null}
         </span>
@@ -332,9 +346,7 @@ function MacroRow({
             {next ? `${next.title} · ${countdown(next.startsAt, store.now)}` : "No upcoming event"}
           </span>
           {highStory ? (
-            <span className="mt-1 block truncate text-[12px]" style={{ color: "var(--color-negative)" }}>
-              High · {highStory.title}
-            </span>
+            <span className="mt-1 block truncate text-[12px] text-[var(--color-accent)]">1 material change</span>
           ) : null}
         </span>
         <span className="text-right">

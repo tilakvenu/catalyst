@@ -1,4 +1,4 @@
-export const SEED_VERSION = 7;
+export const SEED_VERSION = 8;
 
 export type Direction = "up" | "down" | "flat";
 export type Sentiment = "bullish" | "bearish" | "none";
@@ -6,7 +6,7 @@ export type EventKind = "earnings" | "macro" | "product";
 export type Session = "bmo" | "amc" | "intraday";
 export type ImpactTag = "high-vol" | "sector" | "implied-move" | "after-close";
 export type ThemePref = "light" | "dark" | "system";
-export type TabId = "now" | "names" | "news" | "record";
+export type TabId = "now" | "record";
 export type WatchFilter = "all" | "held" | "macro";
 export type SparkRange = "1D" | "1M" | "6M" | "1Y";
 export type PastFilter = "all" | "earnings" | "notes";
@@ -15,6 +15,7 @@ export type MacroSeriesId = "cpi" | "fomc" | "nfp" | "ppi" | "gdp" | "ism";
 export type NewsKind = "target" | "announcement" | "filing" | "coverage";
 export type NewsImpact = "high" | "medium" | "low";
 export type NewsFilter = "all" | "high" | "target" | "announcement" | "today";
+export type JournalEntryState = "unresolvable";
 
 export interface Ticker {
   id: string;
@@ -124,6 +125,8 @@ export interface Headline {
   why?: string;
   scoredBy?: "heuristic" | "grok" | "fixture";
   origin?: "fixture" | "live";
+  /** First time this item entered the local store. Never overwrite on refetch. */
+  firstSeenAt?: string;
 }
 
 export interface JournalEntry {
@@ -141,6 +144,13 @@ export interface JournalEntry {
   actualMovePct?: number;
   actualMoveDate?: string;
   actualFigure?: string;
+  lockedAt?: string;
+  /** Ticker id the macro call is scored against. Required to lock a macro event. */
+  callTarget?: string;
+  /** Packed headline snapshots visible on the call sheet at lock. See evidence.ts. */
+  evidenceSnapshot?: string[];
+  scoringRuleVersion?: number;
+  state?: JournalEntryState;
 }
 
 export interface QuoteCache {
@@ -166,7 +176,7 @@ export type Screen =
   | { name: "settings" }
   | { name: "news" }
   | { name: "names" }
-  | { name: "record" };
+  | { name: "simulation" };
 
 export type Sheet =
   | { name: "journal"; eventId: string }
