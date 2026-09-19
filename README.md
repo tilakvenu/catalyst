@@ -18,16 +18,16 @@ Opens on **Now**, populated. Demo mode is on by default. No network, no API keys
 
 | Surface | What to try |
 |---------|-------------|
-| Now | Next print with **Up / Down / Flat** on the card. Score a print if one is in. Ticker rail, high tape |
-| Names | Search, All/Held/Macro, swipe Mute/Remove, CSV |
+| Now | Next print with **Up / Down / Flat**, street numbers, typical session |
+| Names | Search, All/Held/Macro, high-story line on a name |
+| News | Watchlist tape. **High · >2% / Med · 0.5–2% / Low**. Rank with Grok |
 | Record | Accuracy, conviction bands, Pending with Score vs Complete |
-| Tape | From Now → See all. Impact flags, Rank with Grok |
 | Ticker | Quote, spark, next event, flagged headlines |
 | Event | Your call first. Write / lock |
 | Journal | Direction, conviction 1–5, why, wrong-if. Drafts stay Pending |
 | Settings | Gear on Now. Demo, keys, theme, reset |
 
-First open of the phone: black screen, the mark, then a whoosh into the blue bead. Tabs: Now / Names / Record.
+First open of the phone: black screen, the mark, then a whoosh into the blue bead. Tabs: Now / Names / News / Record.
 
 ## APIs
 

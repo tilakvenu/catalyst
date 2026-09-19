@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ageLabel } from "@/lib/catalyst/format";
-import { impactLabel, kindLabel } from "@/lib/catalyst/impact";
+import { impactCaption, impactTone, kindLabel } from "@/lib/catalyst/impact";
 import { tickerById } from "@/lib/catalyst/selectors";
 import { useCatalyst } from "@/lib/catalyst/store";
 import type { Headline, NewsFilter, NewsImpact } from "@/lib/catalyst/types";
@@ -30,24 +30,43 @@ export function NewsScreen() {
   const startOfDay = new Date(store.now);
   startOfDay.setHours(0, 0, 0, 0);
 
-  const list = followed.filter((h) => {
-    if (filter === "high") return h.impact === "high";
-    if (filter === "target") return h.kind === "target";
-    if (filter === "announcement") return h.kind === "announcement" || h.kind === "filing";
-    if (filter === "today") return new Date(h.publishedAt).getTime() >= startOfDay.getTime();
-    return true;
-  });
+  const list = followed
+    .filter((h) => {
+      if (filter === "high") return h.impact === "high";
+      if (filter === "target") return h.kind === "target";
+      if (filter === "announcement") return h.kind === "announcement" || h.kind === "filing";
+      if (filter === "today") return new Date(h.publishedAt).getTime() >= startOfDay.getTime();
+      return true;
+    })
+    .sort((a, b) => {
+      const rank = { high: 0, medium: 1, low: 2 } as const;
+      const d = (rank[a.impact ?? "low"] ?? 2) - (rank[b.impact ?? "low"] ?? 2);
+      if (d !== 0) return d;
+      return +new Date(b.publishedAt) - +new Date(a.publishedAt);
+    });
 
   const highCount = followed.filter((h) => h.impact === "high").length;
+  const medCount = followed.filter((h) => h.impact === "medium").length;
+  const lowCount = followed.filter((h) => h.impact === "low").length;
 
   return (
-    <div className="px-4 pb-10 pt-1">
-      <div className="-mx-2">
-        <TopBar title="Tape" onBack={() => store.pop()} />
-      </div>
-      <p className="mb-3 px-1 text-[13px] text-[var(--fg-muted)]">
-        Flagged by how much it should move the name
-        {highCount ? ` · ${highCount} high` : ""}.
+    <div className="px-4 pb-28 pt-1">
+      <header className="mb-3 pt-1">
+        <h1 className="text-[34px] font-bold leading-none tracking-tight">News</h1>
+        <p className="mt-1.5 text-[13px] text-[var(--fg-muted)]">
+          <span className="font-medium" style={{ color: "var(--color-negative)" }}>
+            {highCount} High
+          </span>
+          <span className="mx-1.5 text-[var(--fg-faint)]">·</span>
+          <span className="font-medium" style={{ color: "var(--color-warn)" }}>
+            {medCount} Med
+          </span>
+          <span className="mx-1.5 text-[var(--fg-faint)]">·</span>
+          {lowCount} Low
+        </p>
+      </header>
+      <p className="mb-3 px-1 text-[13px] leading-snug text-[var(--fg-muted)]">
+        Flagged by how much it should move the name next session. High ≈ more than ~2%, Med 0.5–2%, Low is color.
       </p>
 
       <div className="mb-3 flex gap-2">
@@ -139,8 +158,8 @@ export function NewsScreen() {
       )}
 
       <p className="mt-4 px-1 text-[11px] leading-relaxed text-[var(--fg-faint)]">
-        High (red) ≈ a session that can print more than ~2%. Med (amber) is 0.5–2%. Low is color.
-        Heuristic first; Rank with Grok re-scores the top of the tape. Not a real-time feed.
+        High (red) ≈ a session that can print more than ~2%. Med (amber) 0.5–2%. Low is color.
+        Stories are ordered High → Med → Low, then by time. Rank with Grok re-scores the top of the tape.
       </p>
     </div>
   );
@@ -169,12 +188,13 @@ function NewsRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="text-[12px] font-semibold tracking-wide">{kicker}</span>
-          <Pill tone={headline.impact === "high" ? "neg" : headline.impact === "medium" ? "warn" : "neutral"}>
-            {impactLabel(headline.impact)}
-          </Pill>
+          <Pill tone={impactTone(headline.impact)}>{impactCaption(headline.impact)}</Pill>
           <span className="text-[11px] text-[var(--fg-faint)]">{kindLabel(headline.kind)}</span>
         </div>
         <p className="mt-1 text-[15px] font-medium leading-snug">{headline.title}</p>
+        {headline.why ? (
+          <p className="mt-1 text-[12px] leading-snug text-[var(--fg-muted)]">{headline.why}</p>
+        ) : null}
         <p className="mt-1 text-[12px] text-[var(--fg-faint)]">
           {headline.source} · {ageLabel(headline.publishedAt, store.now)}
         </p>
@@ -203,9 +223,7 @@ export function ArticleSheet() {
       <TopBar title={kicker} onBack={() => store.closeSheet()} />
       <div className="min-h-0 flex-1 overflow-y-auto hide-scroll px-4 pb-28">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Pill tone={h.impact === "high" ? "neg" : h.impact === "medium" ? "warn" : "neutral"}>
-            {impactLabel(h.impact)} move
-          </Pill>
+          <Pill tone={impactTone(h.impact)}>{impactCaption(h.impact)}</Pill>
           <Pill tone="neutral">{kindLabel(h.kind)}</Pill>
           {h.scoredBy === "grok" ? <Pill tone="accent">Grok</Pill> : null}
         </div>

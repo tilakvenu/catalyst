@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { ageLabel, countdown, formatPct, formatWhen, impactLabel, sessionLabel } from "@/lib/catalyst/format";
-import { impactLabel as newsImpactLabel, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
+import { impactCaption as newsImpactLabel, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
 import { typicalSessionPct } from "@/lib/catalyst/scoring";
 import { entryFor, eventLabel, isUrgent, kindLabel, suggestedPrint } from "@/lib/catalyst/selectors";
 import { isEntryComplete } from "@/lib/catalyst/types";

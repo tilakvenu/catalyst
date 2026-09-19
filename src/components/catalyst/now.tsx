@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { EMPTY_COPY } from "@/lib/catalyst/fixtures";
 import { ageLabel, countdown, formatPct, formatWhen } from "@/lib/catalyst/format";
-import { impactLabel, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
+import { impactCaption, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
+import { typicalSessionPct } from "@/lib/catalyst/scoring";
 import { marketClock } from "@/lib/catalyst/session";
 import {
   entryFor,
@@ -40,7 +41,7 @@ export function NowScreen() {
     .slice(0, 3);
 
   const empty = store.tickers.length === 0 && store.macros.length === 0;
-  const briefing = deskBriefing(store, next, ready.length, open.length);
+  const briefing = deskBriefing(store, next, ready.length, open.length, highTape.length);
 
   return (
     <div className="px-4 pb-28 pt-1">
@@ -111,17 +112,20 @@ function deskBriefing(
   next: CatalystEvent | undefined,
   ready: number,
   open: number,
+  high: number,
 ): string {
   if (store.lastScore) return store.lastScore.hit ? "You called it." : "Missed. Next print is waiting.";
   if (ready) return ready === 1 ? "The print is in. Score it." : `${ready} prints to score.`;
   if (next) {
     const note = entryFor(store, next.id);
     const { kicker } = eventLabel(store, next);
-    if (note && isEntryComplete(note)) return `${kicker} is locked.`;
+    const tape = high ? ` · ${high} high` : "";
+    if (note && isEntryComplete(note)) return `${kicker} is locked.${tape}`;
     if (note?.direction) return `${kicker} is a draft. Finish it.`;
     return `${kicker} ${countdown(next.startsAt, store.now)}.`;
   }
   if (open) return `${open} still open this week.`;
+  if (high) return `${high} high on the tape.`;
   return "Quiet. The tape is below.";
 }
 
@@ -186,6 +190,9 @@ function TickerRail() {
             style={{ background: "var(--bg-card)" }}
           >
             <span className="text-[14px] font-semibold">{t.symbol}</span>
+            {store.headlines.some((h) => h.tickerId === t.id && h.impact === "high") ? (
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--color-negative)" }} />
+            ) : null}
             <span className={cn("num text-[12px] font-medium", t.changePct >= 0 ? "pos" : "neg")}>
               {formatPct(t.changePct)}
             </span>
@@ -292,6 +299,8 @@ function CallHero({ event }: { event: CatalystEvent }) {
   const complete = note ? isEntryComplete(note) : false;
   const [editing, setEditing] = useState(false);
   const showPad = !complete || editing;
+  const typical = event.tickerId ? typicalSessionPct(store.sparks[event.tickerId]?.["1M"] ?? []) : null;
+  const street = event.consensus?.slice(0, 3) ?? [];
 
   return (
     <div className="rounded-[28px] p-5" style={{ background: "var(--bg-card)" }}>
@@ -300,10 +309,34 @@ function CallHero({ event }: { event: CatalystEvent }) {
       <h2 className="mt-0.5 text-[22px] font-bold leading-tight tracking-tight text-balance">{event.title}</h2>
       <p suppressHydrationWarning className="mt-1 text-[13px] text-[var(--fg-muted)]">
         {kindLabel(event)} · {formatWhen(event.startsAt)}
+        {event.confirmed ? "" : " · Est."}
       </p>
       <p suppressHydrationWarning className="display-num mt-4 text-[48px] leading-none" style={{ color: "var(--fg)" }}>
         {countdown(event.startsAt, store.now)}
       </p>
+      {street.length ? (
+        <dl className="mt-4 overflow-hidden rounded-[16px]" style={{ background: "var(--bg-elevated)" }}>
+          {street.map((row, i) => (
+            <div
+              key={row.metric}
+              className="flex items-baseline justify-between gap-3 px-3.5 py-2.5"
+              style={{ boxShadow: i < street.length - 1 ? "inset 0 -0.5px 0 var(--hairline)" : undefined }}
+            >
+              <dt className="min-w-0 truncate text-[12px] text-[var(--fg-muted)]">{row.metric}</dt>
+              <dd className="num shrink-0 text-[13px] font-semibold">
+                {row.consensus}
+                <span className="ml-2 font-medium text-[var(--fg-faint)]">prior {row.prior}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {typical != null ? (
+        <p className="mt-2 text-[12px] text-[var(--fg-muted)]">Typical session ±{typical.toFixed(1)}%</p>
+      ) : null}
+      {event.consensusSource ? (
+        <p className="mt-1 text-[11px] text-[var(--fg-faint)]">{event.consensusSource}</p>
+      ) : null}
 
       {showPad ? (
         <div className="mt-5">
@@ -385,7 +418,7 @@ function HighTape({ items }: { items: Headline[] }) {
         <button
           type="button"
           className="text-[13px] font-medium text-[var(--color-accent)]"
-          onClick={() => store.push({ name: "news" })}
+          onClick={() => store.setTab("news")}
         >
           See all
         </button>
@@ -406,7 +439,7 @@ function HighTape({ items }: { items: Headline[] }) {
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
                   <span className="text-[12px] font-semibold">{kicker}</span>
-                  <Pill tone="neg">{impactLabel(h.impact)}</Pill>
+                  <Pill tone="neg">{impactCaption(h.impact)}</Pill>
                   <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(h.kind)}</span>
                 </span>
                 <span className="mt-1 block text-[15px] font-medium leading-snug">{h.title}</span>

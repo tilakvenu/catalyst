@@ -143,7 +143,7 @@ function PhoneBody() {
             <EventScreen id={screen.id} />
           ) : screen.name === "settings" ? (
             <SettingsScreen />
-          ) : screen.name === "news" ? (
+          ) : screen.name === "news" || (onTab && store.tab === "news") ? (
             <NewsScreen />
           ) : screen.name === "names" || (onTab && store.tab === "names") ? (
             <WatchlistScreen />
@@ -212,14 +212,22 @@ function TabBar() {
   const store = useCatalyst();
   const pending = pendingCount(store);
   const inbox = inboxCount(store);
+  const followedIds = new Set(store.tickers.map((t) => t.id));
+  const followedMacros = new Set(store.macros.map((m) => m.id));
+  const highNews = store.headlines.filter(
+    (h) =>
+      h.impact === "high" &&
+      ((h.tickerId && followedIds.has(h.tickerId)) || (h.macroId && followedMacros.has(h.macroId))),
+  ).length;
   const items = [
     { id: "now" as const, label: "Now", icon: NowIcon, badge: inbox },
     { id: "names" as const, label: "Names", icon: ListIcon },
+    { id: "news" as const, label: "News", icon: NewsIcon, badge: highNews },
     { id: "record" as const, label: "Record", icon: ChartIcon, badge: pending },
   ];
   return (
     <nav className="pointer-events-none absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
-      <div className="pointer-events-auto sheen glass flex h-[62px] w-full max-w-[300px] items-stretch rounded-full px-2">
+      <div className="pointer-events-auto sheen glass flex h-[62px] w-full max-w-[340px] items-stretch rounded-full px-1.5">
         {items.map((it) => {
           const on = store.tab === it.id;
           const Icon = it.icon;
@@ -277,6 +285,23 @@ function ListIcon({ active }: { active: boolean }) {
       <path d="M5 6H17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
       <path d="M5 11H17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
       <path d="M5 16H13" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+    </svg>
+  );
+}
+function NewsIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
+      <rect
+        x="4"
+        y="4.5"
+        width="14"
+        height="13"
+        rx="2.5"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+      />
+      <path d="M7 9H15" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+      <path d="M7 12.5H12" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
     </svg>
   );
 }

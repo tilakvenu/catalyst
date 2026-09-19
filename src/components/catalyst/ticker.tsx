@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ageLabel, countdown, formatPct, formatPrice, formatUsdChange, formatWhen } from "@/lib/catalyst/format";
-import { impactLabel, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
+import { impactCaption, kindLabel as newsKindLabel } from "@/lib/catalyst/impact";
 import { typicalSessionPct } from "@/lib/catalyst/scoring";
 import { entryFor, isUrgent, kindLabel, pastFollowed, upcomingFollowed } from "@/lib/catalyst/selectors";
 import { useCatalyst } from "@/lib/catalyst/store";
@@ -155,7 +155,7 @@ export function TickerScreen({ id }: { id: string }) {
             >
               <div className="flex items-center gap-1.5">
                 <Pill tone={h.impact === "high" ? "neg" : h.impact === "medium" ? "warn" : "neutral"}>
-                  {impactLabel(h.impact)}
+                  {impactCaption(h.impact)}
                 </Pill>
                 <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(h.kind)}</span>
               </div>
@@ -240,7 +240,7 @@ export function HeadlinesSheet() {
           >
             <div className="flex items-center gap-1.5">
               <Pill tone={h.impact === "high" ? "neg" : h.impact === "medium" ? "warn" : "neutral"}>
-                {impactLabel(h.impact)}
+                {impactCaption(h.impact)}
               </Pill>
               <span className="text-[11px] text-[var(--fg-faint)]">{newsKindLabel(h.kind)}</span>
             </div>

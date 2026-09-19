@@ -54,6 +54,9 @@ export function EventRow({
             {" · "}
             {formatTimeEt(event.startsAt)}
             {!event.confirmed ? " · Est." : ""}
+            {event.consensus?.[0]
+              ? ` · ${event.consensus[0].metric} ${event.consensus[0].consensus}`
+              : ""}
           </span>
         </span>
         <span

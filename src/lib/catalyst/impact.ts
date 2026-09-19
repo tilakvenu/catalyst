@@ -102,6 +102,17 @@ export function impactLabel(impact?: NewsImpact): string {
   return "Low";
 }
 
+/** Next-session move the flag is sized for. */
+export function impactMove(impact?: NewsImpact): string {
+  if (impact === "high") return ">2%";
+  if (impact === "medium") return "0.5–2%";
+  return "<0.5%";
+}
+
+export function impactCaption(impact?: NewsImpact): string {
+  return `${impactLabel(impact)} · ${impactMove(impact)}`;
+}
+
 export function impactTone(impact?: NewsImpact): "neg" | "warn" | "neutral" {
   if (impact === "high") return "neg";
   if (impact === "medium") return "warn";

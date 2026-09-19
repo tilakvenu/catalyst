@@ -21,4 +21,4 @@ If this session is interrupted, say: **“session got interrupted, continue from
 
 ## Next if interrupted
 
-Tabs are back: **Now / Names / Record**. Inline call on Now. Launch whoosh into the blue bead. Retrieve no-tabs at `desk`; three-tab at `three-tabs`; five-tab at `pre-consumer-redesign`. Do not restart from zero.
+C5: four tabs **Now / Names / News / Record**. News is the tape with High/Med/Low move labels. Street numbers on the next-print card. Tag `C5`. Prior look: `pre-C5`. Do not restart from zero.

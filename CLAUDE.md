@@ -38,7 +38,7 @@ Until that passes, say so. Do not claim a Simulator launch if you could not run 
 
 Watch tickers/macros → see catalysts → write a call → score it the session after.
 
-Screens: Now, Names, Record (tabs). Tape and Settings are push screens. Ticker, Event, Journal.
+Screens: Now, Names, News, Record (tabs). Settings is a push. Ticker, Event, Journal.
 
 Launch overlay analog: SwiftUI overlay on the root — black, mark, then zoom into the tint bead. Do not unmount the app behind a storyboard splash.
 

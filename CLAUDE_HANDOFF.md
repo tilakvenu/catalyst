@@ -23,7 +23,7 @@ Until that passes, say so. Do not claim a Simulator launch if you could not run 
 
 ## Screens already specified
 
-Now, Names, Record (tabs). Tape and Settings are push screens. Ticker, Event, Journal. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style tape with High / Med / Low impact flags, opened from Now. Launch zooms into the blue bead. Prior five-tab IA: git tag `pre-consumer-redesign`. Three-tab before inline call: `three-tabs`. No-tabs desk: `desk`.
+Now, Names, News, Record (tabs). Settings is a push. Ticker, Event, Journal. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style tape with High / Med / Low impact flags sized to next-session move. Launch zooms into the blue bead. Prior IAs: `pre-consumer-redesign` (five tabs), `three-tabs`, `desk` (no tabs), `pre-C5` (three tabs + whoosh).
 
 ## Design deltas from the original spec (intentional)
 
