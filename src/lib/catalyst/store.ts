@@ -140,7 +140,7 @@ export const useCatalyst = create<CatalystState>()(
       const demo = buildDemoSnapshot();
       return {
         ...demo,
-        tab: "timeline",
+        tab: "now",
         stack: [],
         sheet: null,
         banner: null,
@@ -174,7 +174,7 @@ export const useCatalyst = create<CatalystState>()(
             ...fresh,
             theme: get().theme,
             liveKeys: get().liveKeys,
-            tab: "timeline",
+            tab: "now",
             stack: [],
             sheet: null,
             emptySeed: false,
@@ -189,7 +189,7 @@ export const useCatalyst = create<CatalystState>()(
             ...empty,
             theme: get().theme,
             liveKeys: get().liveKeys,
-            tab: "timeline",
+            tab: "now",
             stack: [],
             sheet: null,
             now: Date.now(),
@@ -644,10 +644,10 @@ export const useCatalyst = create<CatalystState>()(
         if (!state) return;
         const fixed = ensureSeed(state);
         if (fixed !== state || fixed.seedVersion !== SEED_VERSION) {
-          useCatalyst.setState({ ...fixed, hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "timeline", newsStatus: "idle" });
+          useCatalyst.setState({ ...fixed, hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "now", newsStatus: "idle" });
           return;
         }
-        useCatalyst.setState({ hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "timeline", newsStatus: "idle" });
+        useCatalyst.setState({ hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "now", newsStatus: "idle" });
       },
     },
   ),

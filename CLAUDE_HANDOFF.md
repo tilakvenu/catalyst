@@ -23,7 +23,7 @@ Until that passes, say so. Do not claim a Simulator launch if you could not run 
 
 ## Screens already specified
 
-Timeline, Watchlist, **News**, Ticker Detail, Event Detail, Journal Entry, Review, Settings. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style watchlist tape with High / Med / Low impact flags (price-move, not sentiment).
+Now (home), Names, Record. Tape and Settings are push screens. Ticker, Event, Journal. Fixtures populate all of them plus empty states (Settings → Reset to empty). News is a Yahoo-style tape with High / Med / Low impact flags, opened from Now. Prior five-tab IA: git tag `pre-consumer-redesign`.
 
 ## Design deltas from the original spec (intentional)
 

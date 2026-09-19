@@ -6,7 +6,7 @@ export type EventKind = "earnings" | "macro" | "product";
 export type Session = "bmo" | "amc" | "intraday";
 export type ImpactTag = "high-vol" | "sector" | "implied-move" | "after-close";
 export type ThemePref = "light" | "dark" | "system";
-export type TabId = "timeline" | "watchlist" | "news" | "review" | "settings";
+export type TabId = "now" | "names" | "record";
 export type WatchFilter = "all" | "held" | "macro";
 export type SparkRange = "1D" | "1M" | "6M" | "1Y";
 export type PastFilter = "all" | "earnings" | "notes";
@@ -162,7 +162,9 @@ export type Followable =
 export type Screen =
   | { name: "tab"; tab: TabId }
   | { name: "ticker"; id: string }
-  | { name: "event"; id: string };
+  | { name: "event"; id: string }
+  | { name: "settings" }
+  | { name: "news" };
 
 export type Sheet =
   | { name: "journal"; eventId: string }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { countdown } from "@/lib/catalyst/format";
-import { eventLabel, nearest, pendingCount } from "@/lib/catalyst/selectors";
+import { eventLabel, inboxCount, nearest, pendingCount } from "@/lib/catalyst/selectors";
 import { useCatalyst, useCurrentScreen } from "@/lib/catalyst/store";
 import { cn } from "@/lib/utils";
 import { EventScreen } from "./event";
@@ -8,10 +8,10 @@ import { ArticleSheet, NewsScreen } from "./news";
 import { HeadlinesSheet } from "./ticker";
 import { JournalSheet } from "./journal";
 import { CatalystMark } from "./mark";
+import { NowScreen } from "./now";
 import { ReviewScreen } from "./review";
 import { SettingsScreen } from "./settings";
 import { TickerScreen } from "./ticker";
-import { TimelineScreen } from "./timeline";
 import { WatchlistScreen, WatchlistSheets } from "./watchlist";
 
 export function CatalystApp() {
@@ -36,24 +36,14 @@ export function CatalystApp() {
   const theme = useResolvedTheme(store.theme);
 
   return (
-    <div className="studio-bg relative min-h-dvh w-full">
-      <div className="relative mx-auto flex min-h-dvh max-w-[1400px] items-center justify-center gap-16 px-4 py-6">
-        <aside className="hidden max-w-sm lg:block">
-          <CatalystMark size={64} className="text-[var(--color-studio-ink)]" />
-          <p className="wordmark mt-5 text-[15px] text-[var(--color-studio-ink)]">Catalyst</p>
-          <h2 className="mt-3 text-[40px] font-bold leading-[1.05] tracking-tight text-[var(--color-studio-ink)] text-balance">
-            The call,
-            <br />
-            then the score.
-          </h2>
-          <p className="mt-4 text-[17px] leading-relaxed text-[var(--color-studio-muted)] text-pretty">
-            Earnings, CPI, FOMC — journaled, then graded the session after. Incomplete notes stay
-            pending. They never inflate the number.
-          </p>
-        </aside>
+    <div className="studio-bg grid min-h-dvh w-full place-items-center px-4 py-6">
+      <div className="flex flex-col items-center">
         <DeviceFrame theme={theme}>
           <PhoneBody />
         </DeviceFrame>
+        <p className="mt-6 hidden text-[13px] tracking-tight text-[var(--color-studio-muted)] lg:block">
+          The call, then the score.
+        </p>
       </div>
     </div>
   );
@@ -70,7 +60,7 @@ function useResolvedTheme(pref: "light" | "dark" | "system"): "light" | "dark" {
 function DeviceFrame({ children, theme }: { children: React.ReactNode; theme: "light" | "dark" }) {
   const [launch, setLaunch] = useState(true);
   return (
-    <div className="device-wrap">
+    <div className="device-wrap mx-auto w-fit">
       <div
         className="relative mx-auto aspect-[393/852] w-[min(393px,calc(100vw-1.5rem))] overflow-hidden rounded-[54px] p-[10px] shadow-[var(--shadow-device)] max-[520px]:h-dvh max-[520px]:w-full max-[520px]:max-w-none max-[520px]:rounded-none max-[520px]:p-0 max-[520px]:shadow-none max-[520px]:aspect-auto"
         style={{ background: "var(--color-dark)" }}
@@ -142,16 +132,16 @@ function PhoneBody() {
             <TickerScreen id={screen.id} />
           ) : screen.name === "event" ? (
             <EventScreen id={screen.id} />
-          ) : store.tab === "watchlist" ? (
-            <WatchlistScreen />
-          ) : store.tab === "news" ? (
-            <NewsScreen />
-          ) : store.tab === "review" ? (
-            <ReviewScreen />
-          ) : store.tab === "settings" ? (
+          ) : screen.name === "settings" ? (
             <SettingsScreen />
+          ) : screen.name === "news" ? (
+            <NewsScreen />
+          ) : store.tab === "names" ? (
+            <WatchlistScreen />
+          ) : store.tab === "record" ? (
+            <ReviewScreen />
           ) : (
-            <TimelineScreen />
+            <NowScreen />
           )}
         </div>
         <JournalSheet />
@@ -160,7 +150,7 @@ function PhoneBody() {
         <WatchlistSheets />
         {store.banner ? <Banner /> : null}
       </div>
-      {showTabs ? <TabBar /> : null}
+      {showTabs && !store.sheet ? <TabBar /> : null}
       <div className="flex h-4 items-end justify-center pb-1 max-[520px]:h-[calc(env(safe-area-inset-bottom)+8px)]">
         <span className="home-bar" />
       </div>
@@ -196,18 +186,15 @@ function StatusBar() {
 function TabBar() {
   const store = useCatalyst();
   const pending = pendingCount(store);
-  const followedIds = new Set(store.tickers.map((t) => t.id));
-  const highNews = store.headlines.filter((h) => h.impact === "high" && h.tickerId && followedIds.has(h.tickerId)).length;
+  const inbox = inboxCount(store);
   const items = [
-    { id: "timeline" as const, label: "Timeline", icon: TimelineIcon },
-    { id: "watchlist" as const, label: "Watchlist", icon: ListIcon },
-    { id: "news" as const, label: "News", icon: NewsIcon, badge: highNews },
-    { id: "review" as const, label: "Review", icon: ChartIcon, badge: pending },
-    { id: "settings" as const, label: "Settings", icon: GearIcon },
+    { id: "now" as const, label: "Now", icon: NowIcon, badge: inbox },
+    { id: "names" as const, label: "Names", icon: ListIcon },
+    { id: "record" as const, label: "Record", icon: ChartIcon, badge: pending },
   ];
   return (
     <nav className="pointer-events-none absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
-      <div className="pointer-events-auto sheen glass flex h-[62px] w-full max-w-[360px] items-stretch rounded-full px-2">
+      <div className="pointer-events-auto sheen glass flex h-[62px] w-full max-w-[300px] items-stretch rounded-full px-2">
         {items.map((it) => {
           const on = store.tab === it.id;
           const Icon = it.icon;
@@ -267,12 +254,11 @@ function Battery() {
     </svg>
   );
 }
-function TimelineIcon({ active }: { active: boolean }) {
+function NowIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <path d="M4 16.5V18.5H18V16.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-      <path d="M4 11V13H12V11" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-      <path d="M4 5.5V7.5H16V5.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+      <circle cx="11" cy="11" r="7.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <circle cx="11" cy="11" r="2.25" fill="currentColor" />
     </svg>
   );
 }
@@ -285,14 +271,6 @@ function ListIcon({ active }: { active: boolean }) {
     </svg>
   );
 }
-function NewsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <rect x="3.5" y="4.5" width="15" height="13" rx="2" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
-      <path d="M7 8.5H15M7 11.5H15M7 14.5H12" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-    </svg>
-  );
-}
 function ChartIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
@@ -302,19 +280,6 @@ function ChartIcon({ active }: { active: boolean }) {
         strokeWidth={active ? 2 : 1.6}
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-function GearIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <circle cx="11" cy="11" r="3" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
-      <path
-        d="M11 3.5V5.5M11 16.5V18.5M3.5 11H5.5M16.5 11H18.5M5.8 5.8L7.2 7.2M14.8 14.8L16.2 16.2M16.2 5.8L14.8 7.2M7.2 14.8L5.8 16.2"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-        strokeLinecap="round"
       />
     </svg>
   );

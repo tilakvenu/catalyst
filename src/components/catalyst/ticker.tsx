@@ -123,9 +123,9 @@ export function TickerScreen({ id }: { id: string }) {
             <button
               type="button"
               className="mt-3 h-10 w-full rounded-[12px] text-[14px] font-semibold fill-accent"
-              onClick={() => store.openSheet({ name: "note", eventId: next.id })}
+              onClick={() => store.openSheet({ name: "journal", eventId: next.id })}
             >
-              Write a note
+              Write the call
             </button>
           </div>
         ) : null}

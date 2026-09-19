@@ -58,7 +58,7 @@ export function WatchlistScreen() {
   return (
     <div className="px-4 pb-28 pt-1">
       <header className="mb-3 flex items-end justify-between pt-1">
-        <h1 className="text-[34px] font-bold leading-none tracking-tight">Watchlist</h1>
+        <h1 className="text-[34px] font-bold leading-none tracking-tight">Names</h1>
         <button
           type="button"
           onClick={() => store.openSheet({ name: "add" })}
@@ -246,6 +246,9 @@ function TickerRow({
         <span className="min-w-0">
           <span className="flex items-baseline gap-2">
             <span className="text-[16px] font-semibold">{item.symbol}</span>
+            {store.headlines.some((h) => h.tickerId === item.id && h.impact === "high") ? (
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--color-negative)" }} />
+            ) : null}
             <span className="truncate text-[13px] text-[var(--fg-muted)]">{item.company}</span>
           </span>
           <span className="mt-1 block text-[12px] text-[var(--fg-faint)]">

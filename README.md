@@ -14,18 +14,18 @@ Native SwiftUI sources for Claude Design / Xcode live in [`native/`](native/). T
 
 ## Demo
 
-Opens on the Timeline, populated. Demo mode is on by default. No network, no API keys.
+Opens on **Now**, populated. Demo mode is on by default. No network, no API keys.
 
-| Tab | What to try |
-|-----|-------------|
-| Timeline | Day groups, session clock, **Ready to score** on a complete print, empty state via Settings → Reset to empty |
-| Watchlist | Search, All/Held/Macro, swipe Mute/Remove, CSV import, last CPI/FFR print, prints-this-week |
-| News | Watchlist tape, impact flags (High / Med / Low), Targets / Company / Today filters, **Rank with Grok** |
-| Ticker | Day range, mkt cap / P/E / 52w, typical-session vol, spark, next-event, flagged headlines |
-| Event | Your call first, consensus, headlines, Continue journal |
-| Journal | Direction, conviction, reasoning, invalidation. Incomplete stays Pending |
-| Review | Accuracy, conviction bands (1–2 / 3 / 4–5), Pending with Score vs Complete, tab badge |
-| Settings | Demo toggle, live keys, theme, seed reset, **Fire a notification now** |
+| Surface | What to try |
+|---------|-------------|
+| Now | Next print as a hero, **Write the call**, Ready to score, still-open inbox, high tape |
+| Names | Search, All/Held/Macro, swipe Mute/Remove, CSV, red pip on high news |
+| Record | Accuracy, conviction bands, Pending with Score vs Complete |
+| Tape | From Now → See all. Impact flags, Rank with Grok |
+| Ticker | Quote, spark, next event, flagged headlines |
+| Event | Your call first. Write / lock |
+| Journal | Direction, conviction 1–5, why, wrong-if. Drafts stay Pending |
+| Settings | Gear on Now. Demo, keys, theme, reset |
 
 First open of the phone: step-mark + **Catalyst** launch overlay, then the tab.
 

@@ -63,6 +63,16 @@ export function nearest(s: StoreSlice): CatalystEvent | undefined {
   return upcomingFollowed(s)[0];
 }
 
+/** Upcoming prints in the next week that still need a complete call. */
+export function needsCall(s: StoreSlice): CatalystEvent[] {
+  return upcomingFollowed(s).filter((e) => {
+    const h = hoursUntil(e.startsAt, s.now);
+    if (h > 7 * 24) return false;
+    const note = entryFor(s, e.id);
+    return !note || !isEntryComplete(note);
+  });
+}
+
 export function entryFor(s: StoreSlice, eventId: string) {
   return s.entries.find((e) => e.eventId === eventId);
 }
@@ -115,6 +125,11 @@ export function readyToScore(s: StoreSlice): CatalystEvent[] {
 
 export function pendingCount(s: StoreSlice): number {
   return s.entries.filter((e) => isPending(e, s.now)).length;
+}
+
+export function inboxCount(s: StoreSlice): number {
+  const readyIds = new Set(readyToScore(s).map((e) => e.id));
+  return readyToScore(s).length + needsCall(s).filter((e) => !readyIds.has(e.id)).length;
 }
 
 export { isEntryComplete, isPending, isScored, missingFields };

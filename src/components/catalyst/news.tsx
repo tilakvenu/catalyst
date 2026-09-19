@@ -41,20 +41,14 @@ export function NewsScreen() {
   const highCount = followed.filter((h) => h.impact === "high").length;
 
   return (
-    <div className="px-4 pb-28 pt-1">
-      <header className="mb-3 flex items-end justify-between pt-1">
-        <div>
-          <h1 className="text-[34px] font-bold leading-none tracking-tight">News</h1>
-          <p className="mt-2 text-[13px] text-[var(--fg-muted)]">
-            Watchlist tape. Flagged by how much it should move the name.
-          </p>
-        </div>
-        {highCount ? (
-          <span className="mb-0.5">
-            <Pill tone="neg">{highCount} high</Pill>
-          </span>
-        ) : null}
-      </header>
+    <div className="px-4 pb-10 pt-1">
+      <div className="-mx-2">
+        <TopBar title="Tape" onBack={() => store.pop()} />
+      </div>
+      <p className="mb-3 px-1 text-[13px] text-[var(--fg-muted)]">
+        Flagged by how much it should move the name
+        {highCount ? ` · ${highCount} high` : ""}.
+      </p>
 
       <div className="mb-3 flex gap-2">
         <button
@@ -127,7 +121,7 @@ export function NewsScreen() {
             store.tickers.length ? (
               <SecondaryButton onClick={() => setFilter("all")}>Show all</SecondaryButton>
             ) : (
-              <PrimaryButton onClick={() => store.setTab("watchlist")}>Open Watchlist</PrimaryButton>
+              <PrimaryButton onClick={() => store.setTab("names")}>Follow a name</PrimaryButton>
             )
           }
         />

@@ -54,7 +54,7 @@ export function ReviewScreen() {
   return (
     <div className="px-4 pb-28 pt-1">
       <header className="mb-3 pt-1">
-        <h1 className="text-[34px] font-bold leading-none tracking-tight">Review</h1>
+        <h1 className="text-[34px] font-bold leading-none tracking-tight">Record</h1>
         {pendingAll.length ? (
           <p className="mt-1.5 text-[13px] text-[var(--fg-muted)]">
             {pendingAll.length} pending {pendingAll.length === 1 ? "call" : "calls"}
@@ -234,7 +234,7 @@ export function ReviewScreen() {
             body={EMPTY_COPY.reviewBody}
             actions={
               pendingAll.length === 0 ? (
-                <PrimaryButton onClick={() => store.setTab("timeline")}>Open timeline</PrimaryButton>
+                <PrimaryButton onClick={() => store.setTab("now")}>See what’s next</PrimaryButton>
               ) : undefined
             }
           />

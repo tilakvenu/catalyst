@@ -3,18 +3,17 @@ import { useCatalyst } from "@/lib/catalyst/store";
 import type { NotifyLead, ThemePref } from "@/lib/catalyst/types";
 import { cn } from "@/lib/utils";
 import { CatalystMark } from "./mark";
-import { PrimaryButton, SecondaryButton } from "./ui";
+import { PrimaryButton, SecondaryButton, TopBar } from "./ui";
 
 export function SettingsScreen() {
   const store = useCatalyst();
   const [confirm, setConfirm] = useState<"empty" | "demo" | null>(null);
 
   return (
-    <div className="px-4 pb-28 pt-1">
-      <header className="mb-4 flex items-end justify-between pt-1">
-        <h1 className="text-[34px] font-bold leading-none tracking-tight">Settings</h1>
-        <CatalystMark size={32} className="text-[var(--fg)]" />
-      </header>
+    <div className="px-4 pb-10 pt-1">
+      <div className="-mx-2">
+        <TopBar title="Settings" onBack={() => store.pop()} trailing={<CatalystMark size={22} className="mr-2 text-[var(--fg)]" />} />
+      </div>
 
       <Group title="Notifications">
         <Row label="Alert timing">

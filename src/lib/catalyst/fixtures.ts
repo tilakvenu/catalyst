@@ -985,12 +985,15 @@ export function buildEmptySnapshot(now = Date.now()): AppSnapshot {
 }
 
 export const EMPTY_COPY = {
+  nowTitle: "Nothing to call yet",
+  nowBody:
+    "Follow one name. Catalyst will put the next print here — and wait for your call before it ever scores you.",
   timelineTitle: "Your timeline is empty",
   timelineBody:
     "Follow a ticker or a macro release and Catalyst will line up the next events, nearest first.",
-  watchlistTitle: "Nothing on the watchlist",
-  watchlistBody: "Add a US-listed equity or ETF, or follow a macro release as a first-class event.",
+  watchlistTitle: "Follow a name",
+  watchlistBody: "Search a US-listed equity or ETF, or follow CPI and FOMC as first-class events.",
   reviewTitle: "No scored calls yet",
   reviewBody:
-    "A call scores the day after its event, once direction, conviction, reasoning, and invalidation are all set.",
+    "A call scores the session after the print — only if direction, conviction, why, and invalidation are all set.",
 };
