@@ -650,7 +650,7 @@ export function buildDemoSnapshot(now = Date.now()): AppSnapshot {
       id: "h13",
       macroId: "cpi",
       title: "A 0.1-point miss on core would reprice two 2026 cuts",
-      source: "Goldman desk note",
+      source: "Goldman",
       publishedAt: at(now, -2),
     },
     {

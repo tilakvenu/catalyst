@@ -49,3 +49,4 @@ If this session is interrupted, say: **“session got interrupted, continue from
 - 2026-09-19: `3516ce1` trading calendar, lock revisions, DEFERRED.md.
 - 2026-09-19: A0 — ported c67.test.ts to vitest (25 passed); pre-event re-lock + final scored-version tests.
 - 2026-09-19: A1–A9 four tabs Catalyst/Calendar/Tape/Record, launch table, calendar dots+heat, tape vol+violet, A9 43 tests. | next: browser QA.
+- 2026-09-19: QA pass. Observed-move only after the name has no upcoming event; wrong-if copy not auto-judged on Record. | next: none.

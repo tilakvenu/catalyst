@@ -143,6 +143,7 @@ export function observedMoveForHeadline(s: StoreSlice, h: Headline): number | nu
   const related = s.events.filter(
     (e) => (h.tickerId && e.tickerId === h.tickerId) || (h.macroId && e.macroId === h.macroId),
   );
+  if (related.some((e) => new Date(e.startsAt).getTime() > s.now)) return null;
   for (const e of related) {
     const note = entryFor(s, e.id);
     if (note?.actualMovePct != null) return note.actualMovePct;

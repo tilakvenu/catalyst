@@ -360,9 +360,9 @@ export function ReviewScreen() {
                     ) : null}
                     {e.invalidation ? (
                       <p className="mt-2 text-[13px] leading-snug text-[var(--fg-muted)]">
-                        Wrong if: {e.invalidation}
+                        You said: “{e.invalidation}”
                         <span className="mt-0.5 block text-[12px] text-[var(--fg-faint)]">
-                          {e.actualFigure ?? "Manual review needed"} · Invalidation: manual review needed
+                          Actual: {e.actualFigure ?? "Figures not in the structured print."} · Manual review needed
                         </span>
                       </p>
                     ) : null}

@@ -158,7 +158,7 @@ export function buildSimulationSnapshot(now = Date.now()): { snapshot: AppSnapsh
         actualMovePct: Number(move.toFixed(2)),
         actualMoveDate: new Date(now - (daysAgo - 1) * 86400000).toISOString(),
         actualFigure: fired
-          ? "You wrote: margin guide below 73%. It came in at 71.4%. Invalidation fired."
+          ? "You wrote: margin guide below 73%. It came in at 71.4%. Manual review needed."
           : "You wrote: a clean miss on the guide. Guide held. Manual review needed.",
       });
     }
