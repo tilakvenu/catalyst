@@ -16,50 +16,10 @@ export function JournalSheet() {
 function CallSheet({ eventId }: { eventId: string }) {
   const store = useCatalyst();
   const event = store.events.find((e) => e.id === eventId);
-  const existing = entryFor(store, eventId);
+  const draft = entryFor(store, eventId);
   const { kicker } = event ? eventLabel(store, event) : { kicker: "Call" };
-
-  const [direction, setDirection] = useState<Direction | null>(existing?.direction ?? null);
-  const [conviction, setConviction] = useState<number | null>(existing?.conviction ?? null);
-  const [reasoning, setReasoning] = useState(existing?.reasoning ?? existing?.text ?? "");
-  const [invalidation, setInvalidation] = useState(existing?.invalidation ?? "");
-
-  useEffect(() => {
-    setDirection(existing?.direction ?? null);
-    setConviction(existing?.conviction ?? null);
-    setReasoning(existing?.reasoning ?? existing?.text ?? "");
-    setInvalidation(existing?.invalidation ?? "");
-  }, [eventId, existing?.id]);
-
-  const draft = {
-    id: existing?.id ?? "draft",
-    eventId,
-    text: reasoning,
-    sentiment: existing?.sentiment ?? null,
-    direction,
-    conviction: conviction as 1 | 2 | 3 | 4 | 5 | null,
-    reasoning,
-    invalidation: invalidation || null,
-    updatedAt: new Date().toISOString(),
-  };
-  const complete = isEntryComplete(draft);
-  const missing = missingFields(draft);
-  const blank = !direction && !conviction && !reasoning.trim() && !invalidation.trim();
-  const ticker = event?.tickerId ? store.tickers.find((t) => t.id === event.tickerId) : undefined;
-  const typical = event?.tickerId ? typicalSessionPct(store.sparks[event.tickerId]?.["1M"] ?? []) : null;
-
-  function persist() {
-    store.saveJournal(eventId, {
-      direction,
-      conviction: conviction as 1 | 2 | 3 | 4 | 5 | null,
-      reasoning,
-      invalidation: invalidation || null,
-      text: reasoning,
-      sentiment:
-        direction === "up" ? "bullish" : direction === "down" ? "bearish" : existing?.sentiment ?? "none",
-    });
-    store.closeSheet();
-  }
+  const complete = draft ? isEntryComplete(draft) : false;
+  const blank = !draft?.direction && !draft?.conviction && !draft?.reasoning?.trim() && !draft?.invalidation?.trim();
 
   return (
     <div className="dim absolute inset-0 z-40 flex flex-col justify-end">
@@ -77,38 +37,124 @@ function CallSheet({ eventId }: { eventId: string }) {
             {complete ? "Ready" : blank ? "New" : "Draft"}
           </Pill>
         </div>
-        <p className="px-5 pb-3 text-[13px] leading-snug text-[var(--fg-muted)]">
-          {event?.title}
-          {typical != null ? ` · Typical session ±${typical.toFixed(1)}%${ticker ? ` in ${ticker.symbol}` : ""}` : ""}
-        </p>
-
+        <p className="px-5 pb-3 text-[13px] leading-snug text-[var(--fg-muted)]">{event?.title}</p>
         <div className="min-h-0 flex-1 overflow-y-auto hide-scroll px-5 pb-4">
-          <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Direction</p>
-          <div className="grid grid-cols-3 gap-2">
-            {(
-              [
-                ["up", "Up"],
-                ["down", "Down"],
-                ["flat", "Flat"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setDirection(id)}
-                className={cn(
-                  "pressable h-14 rounded-[16px] text-[17px] font-semibold",
-                  direction === id ? "fill-accent" : "",
-                )}
-                style={
-                  direction === id ? undefined : { background: "var(--bg-elevated)", color: "var(--fg)" }
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <CallComposer eventId={eventId} layout="sheet" onLock={() => store.closeSheet()} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
+export function CallComposer({
+  eventId,
+  layout = "sheet",
+  onLock,
+}: {
+  eventId: string;
+  layout?: "sheet" | "inline";
+  onLock?: () => void;
+}) {
+  const store = useCatalyst();
+  const event = store.events.find((e) => e.id === eventId);
+  const existing = entryFor(store, eventId);
+
+  const [direction, setDirection] = useState<Direction | null>(existing?.direction ?? null);
+  const [conviction, setConviction] = useState<number | null>(existing?.conviction ?? null);
+  const [reasoning, setReasoning] = useState(existing?.reasoning ?? existing?.text ?? "");
+  const [invalidation, setInvalidation] = useState(existing?.invalidation ?? "");
+
+  useEffect(() => {
+    const note = entryFor(useCatalyst.getState(), eventId);
+    setDirection(note?.direction ?? null);
+    setConviction(note?.conviction ?? null);
+    setReasoning(note?.reasoning ?? note?.text ?? "");
+    setInvalidation(note?.invalidation ?? "");
+  }, [eventId]);
+
+  const draft = {
+    id: existing?.id ?? "draft",
+    eventId,
+    text: reasoning,
+    sentiment: existing?.sentiment ?? null,
+    direction,
+    conviction: conviction as 1 | 2 | 3 | 4 | 5 | null,
+    reasoning,
+    invalidation: invalidation || null,
+    updatedAt: new Date().toISOString(),
+  };
+  const complete = isEntryComplete(draft);
+  const missing = missingFields(draft);
+  const blank = !direction && !conviction && !reasoning.trim() && !invalidation.trim();
+  const ticker = event?.tickerId ? store.tickers.find((t) => t.id === event.tickerId) : undefined;
+  const typical = event?.tickerId ? typicalSessionPct(store.sparks[event.tickerId]?.["1M"] ?? []) : null;
+  const inline = layout === "inline";
+
+  function persist(patch: {
+    direction?: Direction | null;
+    conviction?: number | null;
+    reasoning?: string;
+    invalidation?: string;
+  }) {
+    const dir = patch.direction !== undefined ? patch.direction : direction;
+    const conv = patch.conviction !== undefined ? patch.conviction : conviction;
+    const why = patch.reasoning !== undefined ? patch.reasoning : reasoning;
+    const inv = patch.invalidation !== undefined ? patch.invalidation : invalidation;
+    store.saveJournal(eventId, {
+      direction: dir,
+      conviction: (conv as 1 | 2 | 3 | 4 | 5 | null) ?? null,
+      reasoning: why,
+      invalidation: inv || null,
+      text: why,
+      sentiment: dir === "up" ? "bullish" : dir === "down" ? "bearish" : existing?.sentiment ?? "none",
+    });
+  }
+
+  function lock() {
+    persist({});
+    onLock?.();
+  }
+
+  return (
+    <div>
+      {!inline && typical != null ? (
+        <p className="mb-3 text-[13px] text-[var(--fg-muted)]">
+          Typical session ±{typical.toFixed(1)}%{ticker ? ` in ${ticker.symbol}` : ""}
+        </p>
+      ) : null}
+
+      <p className={cn("mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]", inline && "sr-only")}>
+        Direction
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {(
+          [
+            ["up", "Up"],
+            ["down", "Down"],
+            ["flat", "Flat"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => {
+              setDirection(id);
+              persist({ direction: id });
+            }}
+            className={cn(
+              "pressable rounded-[16px] text-[17px] font-semibold",
+              inline ? "h-16" : "h-14",
+              direction === id ? "fill-accent" : "",
+            )}
+            style={direction === id ? undefined : { background: "var(--bg-elevated)", color: "var(--fg)" }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {direction ? (
+        <>
           <p className="mb-2 mt-5 text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
             Conviction
           </p>
@@ -117,14 +163,15 @@ function CallSheet({ eventId }: { eventId: string }) {
               <button
                 key={n}
                 type="button"
-                onClick={() => setConviction(n)}
+                onClick={() => {
+                  setConviction(n);
+                  persist({ conviction: n });
+                }}
                 className={cn(
                   "pressable h-12 rounded-[14px] text-[16px] font-semibold num",
                   conviction === n ? "fill-accent" : "",
                 )}
-                style={
-                  conviction === n ? undefined : { background: "var(--bg-elevated)", color: "var(--fg)" }
-                }
+                style={conviction === n ? undefined : { background: "var(--bg-elevated)", color: "var(--fg)" }}
               >
                 {n}
               </button>
@@ -134,54 +181,84 @@ function CallSheet({ eventId }: { eventId: string }) {
             <span>Low</span>
             <span>High</span>
           </p>
+        </>
+      ) : inline ? (
+        <p className="mt-3 text-center text-[13px] text-[var(--fg-muted)]">Tap a direction. That starts the call.</p>
+      ) : null}
 
+      {direction && conviction ? (
+        <>
           <p className="mb-2 mt-5 text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
             Why this prints
           </p>
-          <textarea
-            value={reasoning}
-            onChange={(e) => setReasoning(e.target.value.slice(0, 500))}
-            rows={3}
-            placeholder="One or two sentences. The tape already knows the story."
-            className="w-full rounded-[16px] p-3.5 text-[16px] leading-relaxed outline-none"
-            style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
-          />
+          {inline ? (
+            <input
+              value={reasoning}
+              onChange={(e) => setReasoning(e.target.value.slice(0, 500))}
+              onBlur={() => persist({ reasoning })}
+              placeholder="One sentence."
+              className="h-12 w-full rounded-[16px] px-3.5 text-[16px] outline-none"
+              style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
+            />
+          ) : (
+            <textarea
+              value={reasoning}
+              onChange={(e) => setReasoning(e.target.value.slice(0, 500))}
+              onBlur={() => persist({ reasoning })}
+              rows={3}
+              placeholder="One or two sentences. The tape already knows the story."
+              className="w-full rounded-[16px] p-3.5 text-[16px] leading-relaxed outline-none"
+              style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
+            />
+          )}
 
           <p className="mb-2 mt-4 text-[13px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
             Wrong if
           </p>
-          <textarea
-            value={invalidation}
-            onChange={(e) => setInvalidation(e.target.value.slice(0, 500))}
-            rows={3}
-            placeholder="The one fact that kills this call."
-            className="w-full rounded-[16px] p-3.5 text-[16px] leading-relaxed outline-none"
-            style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
-          />
-        </div>
+          {inline ? (
+            <input
+              value={invalidation}
+              onChange={(e) => setInvalidation(e.target.value.slice(0, 500))}
+              onBlur={() => persist({ invalidation })}
+              placeholder="The fact that kills this."
+              className="h-12 w-full rounded-[16px] px-3.5 text-[16px] outline-none"
+              style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
+            />
+          ) : (
+            <textarea
+              value={invalidation}
+              onChange={(e) => setInvalidation(e.target.value.slice(0, 500))}
+              onBlur={() => persist({ invalidation })}
+              rows={3}
+              placeholder="The one fact that kills this call."
+              className="w-full rounded-[16px] p-3.5 text-[16px] leading-relaxed outline-none"
+              style={{ background: "var(--bg-elevated)", color: "var(--fg)" }}
+            />
+          )}
 
-        <div className="px-5 pb-8 pt-2" style={{ boxShadow: "0 -0.5px 0 var(--hairline)" }}>
-          <button
-            type="button"
-            disabled={blank}
-            onClick={persist}
-            className={cn(
-              "pressable h-12 w-full rounded-[14px] text-[16px] font-semibold disabled:opacity-40",
-              blank ? "" : "fill-accent",
-            )}
-            style={blank ? { background: "var(--bg-elevated)", color: "var(--fg-faint)" } : undefined}
-          >
-            {complete ? "Lock the call" : blank ? "Pick a direction" : "Save draft"}
-          </button>
-          <p className="mt-2 text-center text-[12px] leading-relaxed text-[var(--fg-faint)]">
-            {complete
-              ? "Locked. Scores the session after the print — not against memory."
-              : missing.length
-                ? `Draft until ${missing.join(", ")} are set. Drafts never enter the accuracy %.`
-                : "Incomplete entries stay in Pending."}
-          </p>
-        </div>
-      </div>
+          <div className={inline ? "mt-4" : "mt-5"}>
+            <button
+              type="button"
+              disabled={blank}
+              onClick={lock}
+              className={cn(
+                "pressable h-12 w-full rounded-[14px] text-[16px] font-semibold disabled:opacity-40",
+                blank ? "" : "fill-accent",
+              )}
+              style={blank ? { background: "var(--bg-elevated)", color: "var(--fg-faint)" } : undefined}
+            >
+              {complete ? "Lock the call" : "Save draft"}
+            </button>
+            <p className="mt-2 text-center text-[12px] leading-relaxed text-[var(--fg-faint)]">
+              {complete
+                ? "Locked. Scores the session after the print — not against memory."
+                : missing.length
+                  ? `Draft until ${missing.join(", ")} are set. Drafts never enter the accuracy %.`
+                  : "Incomplete entries stay in Pending."}
+            </p>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

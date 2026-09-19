@@ -21,4 +21,4 @@ If this session is interrupted, say: **“session got interrupted, continue from
 
 ## Next if interrupted
 
-Consumer-first IA is live: **Now / Names / Record**. Prior five-tab layout is git tag `pre-consumer-redesign`. Do not restart from zero.
+Consumer-first desk is live: **no tab bar**. Home scores a print or locks a call in place. Names / Record / Tape / Settings are push screens. Retrieve three-tab IA at `three-tabs` (also `consumer-redesign`); five-tab at `pre-consumer-redesign`. Do not restart from zero.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { countdown } from "@/lib/catalyst/format";
-import { eventLabel, inboxCount, nearest, pendingCount } from "@/lib/catalyst/selectors";
+import { eventLabel, nearest } from "@/lib/catalyst/selectors";
 import { useCatalyst, useCurrentScreen } from "@/lib/catalyst/store";
 import { cn } from "@/lib/utils";
 import { EventScreen } from "./event";
@@ -36,8 +36,8 @@ export function CatalystApp() {
   const theme = useResolvedTheme(store.theme);
 
   return (
-    <div className="studio-bg grid min-h-dvh w-full place-items-center px-4 py-6">
-      <div className="flex flex-col items-center">
+    <div className="studio-bg grid min-h-dvh w-full place-items-center overflow-x-hidden px-4 py-6 max-[520px]:px-0 max-[520px]:py-0">
+      <div className="flex w-full min-w-0 max-w-[393px] flex-col items-center max-[520px]:max-w-none">
         <DeviceFrame theme={theme}>
           <PhoneBody />
         </DeviceFrame>
@@ -60,9 +60,9 @@ function useResolvedTheme(pref: "light" | "dark" | "system"): "light" | "dark" {
 function DeviceFrame({ children, theme }: { children: React.ReactNode; theme: "light" | "dark" }) {
   const [launch, setLaunch] = useState(true);
   return (
-    <div className="device-wrap mx-auto w-fit">
+    <div className="device-wrap mx-auto w-full min-w-0">
       <div
-        className="relative mx-auto aspect-[393/852] w-[min(393px,calc(100vw-1.5rem))] overflow-hidden rounded-[54px] p-[10px] shadow-[var(--shadow-device)] max-[520px]:h-dvh max-[520px]:w-full max-[520px]:max-w-none max-[520px]:rounded-none max-[520px]:p-0 max-[520px]:shadow-none max-[520px]:aspect-auto"
+        className="relative mx-auto aspect-[393/852] w-full overflow-hidden rounded-[54px] p-[10px] shadow-[var(--shadow-device)] max-[520px]:h-dvh max-[520px]:rounded-none max-[520px]:p-0 max-[520px]:shadow-none max-[520px]:aspect-auto"
         style={{ background: "var(--color-dark)" }}
       >
         <div
@@ -121,13 +121,13 @@ function LaunchOverlay({ onDone }: { onDone: () => void }) {
 function PhoneBody() {
   const store = useCatalyst();
   const screen = useCurrentScreen();
-  const showTabs = screen.name === "tab";
+  const pushed = screen.name !== "tab";
 
   return (
     <div className="relative flex h-full flex-col">
       <StatusBar />
-      <div className={cn("relative min-h-0 flex-1 overflow-hidden", screen.name !== "tab" && "slide-push")}>
-        <div className="h-full overflow-y-auto hide-scroll">
+      <div className={cn("relative min-h-0 flex-1 overflow-hidden", pushed && "slide-push")}>
+        <div className="h-full min-w-0 overflow-x-hidden overflow-y-auto hide-scroll">
           {screen.name === "ticker" ? (
             <TickerScreen id={screen.id} />
           ) : screen.name === "event" ? (
@@ -136,9 +136,9 @@ function PhoneBody() {
             <SettingsScreen />
           ) : screen.name === "news" ? (
             <NewsScreen />
-          ) : store.tab === "names" ? (
+          ) : screen.name === "names" ? (
             <WatchlistScreen />
-          ) : store.tab === "record" ? (
+          ) : screen.name === "record" ? (
             <ReviewScreen />
           ) : (
             <NowScreen />
@@ -150,7 +150,6 @@ function PhoneBody() {
         <WatchlistSheets />
         {store.banner ? <Banner /> : null}
       </div>
-      {showTabs && !store.sheet ? <TabBar /> : null}
       <div className="flex h-4 items-end justify-center pb-1 max-[520px]:h-[calc(env(safe-area-inset-bottom)+8px)]">
         <span className="home-bar" />
       </div>
@@ -180,42 +179,6 @@ function StatusBar() {
         <Battery />
       </span>
     </div>
-  );
-}
-
-function TabBar() {
-  const store = useCatalyst();
-  const pending = pendingCount(store);
-  const inbox = inboxCount(store);
-  const items = [
-    { id: "now" as const, label: "Now", icon: NowIcon, badge: inbox },
-    { id: "names" as const, label: "Names", icon: ListIcon },
-    { id: "record" as const, label: "Record", icon: ChartIcon, badge: pending },
-  ];
-  return (
-    <nav className="pointer-events-none absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
-      <div className="pointer-events-auto sheen glass flex h-[62px] w-full max-w-[300px] items-stretch rounded-full px-2">
-        {items.map((it) => {
-          const on = store.tab === it.id;
-          const Icon = it.icon;
-          return (
-            <button
-              key={it.id}
-              type="button"
-              onClick={() => store.setTab(it.id)}
-              className="flex flex-1 flex-col items-center justify-center gap-0.5"
-              style={{ color: on ? "var(--color-accent)" : "var(--tab-idle)" }}
-            >
-              <span className="relative">
-                <Icon active={on} />
-                {it.badge ? <span className="tab-badge">{it.badge > 9 ? "9+" : it.badge}</span> : null}
-              </span>
-              <span className="text-[10px] font-medium">{it.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </nav>
   );
 }
 
@@ -251,36 +214,6 @@ function Battery() {
       <rect x="0.5" y="0.5" width="20" height="11" rx="3" stroke="currentColor" />
       <rect x="2" y="2" width="15" height="8" rx="1.5" fill="currentColor" />
       <rect x="21.5" y="3.5" width="2" height="5" rx="0.6" fill="currentColor" />
-    </svg>
-  );
-}
-function NowIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <circle cx="11" cy="11" r="7.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
-      <circle cx="11" cy="11" r="2.25" fill="currentColor" />
-    </svg>
-  );
-}
-function ListIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <path d="M5 6H17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-      <path d="M5 11H17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-      <path d="M5 16H13" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
-    </svg>
-  );
-}
-function ChartIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
-      <path
-        d="M4 16L8.5 11.5L12 14L18 7"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }

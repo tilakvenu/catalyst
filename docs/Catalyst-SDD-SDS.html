@@ -15,10 +15,10 @@
       <table role="presentation" cellpadding="0" cellspacing="0">
         <tr>
           <td style="padding-right:32px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;color:#eceae4;">
-            <strong>Version</strong><br />1.1 · News tape
+            <strong>Version</strong><br />1.2 · Desk
           </td>
           <td style="padding-right:32px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;color:#eceae4;">
-            <strong>Date</strong><br />17 September 2026
+            <strong>Date</strong><br />19 September 2026
           </td>
           <td style="padding-right:32px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px;color:#eceae4;">
             <strong>Status</strong><br />Implemented (web sim)
@@ -72,7 +72,7 @@
 </table>
 
 <h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">2. Product loop and screens</h2>
-<p><strong>Loop:</strong> Watch tickers / macros → see catalysts and tape → write a call → score it the session after.</p>
+<p><strong>Loop:</strong> Watch tickers / macros → see the next print on the desk → lock a call (or score one that’s in) → the tape is supporting, never a destination.</p>
 
 <table cellpadding="8" cellspacing="0" width="100%" style="border-collapse:collapse;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:14px;">
   <thead>
@@ -82,18 +82,18 @@
     </tr>
   </thead>
   <tbody>
-    <tr style="background:#fff;"><td>Timeline</td><td>Day groups, NYSE session clock, nearest-first events, Ready-to-score banner when a complete call has a next-session print.</td></tr>
-    <tr style="background:#f2f2f7;"><td>Watchlist</td><td>Search over US equity/ETF universe, All / Held / Macro, swipe Mute / Remove, CSV import, last CPI / FFR / NFP print.</td></tr>
-    <tr style="background:#fff;"><td>News</td><td>Watchlist tape. Color flags by likely price move. Filters: All, High, Targets, Company, Today. Refresh tape. Rank with Grok (user-initiated).</td></tr>
+    <tr style="background:#fff;"><td>Desk (home)</td><td>No tab bar. One job: if a print is in, score it; else lock the next call with Up / Down / Flat on the card. Ticker rail, high tape, later this week. Accuracy chip and search in the header.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Names</td><td>Push from search. US equity/ETF universe, All / Held / Macro, swipe Mute / Remove, CSV import, last CPI / FFR / NFP print.</td></tr>
+    <tr style="background:#fff;"><td>Tape</td><td>Push from desk. Color flags by likely price move. Filters: All, High, Targets, Company, Today. Refresh. Rank with Grok (user-initiated).</td></tr>
     <tr style="background:#f2f2f7;"><td>Ticker</td><td>Last / change, day range, mkt cap / P/E / 52-week, typical-session vol, spark (1D–1Y), next event, flagged headlines.</td></tr>
     <tr style="background:#fff;"><td>Event</td><td>Call first, then consensus, Tape card (last-four EPS + analyst mix), flagged headlines.</td></tr>
-    <tr style="background:#f2f2f7;"><td>Journal</td><td>Direction, conviction 1–5, reasoning, invalidation. Quick note is the same model with fields left nil. Completion is derived, never stored.</td></tr>
-    <tr style="background:#fff;"><td>Review</td><td>Accuracy %, conviction bands (1–2 / 3 / 4–5), Pending with Score vs Complete. Tab badge = pending count.</td></tr>
-    <tr style="background:#f2f2f7;"><td>Settings</td><td>Theme, notify lead, demo / live, vendor keys on-device, reset demo / empty, fire notification.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Journal</td><td>On the desk for the next print; sheet elsewhere. Direction persists on tap, conviction 1–5, reasoning, invalidation. Completion is derived, never stored.</td></tr>
+    <tr style="background:#fff;"><td>Record</td><td>Push from the accuracy chip. Accuracy %, conviction bands (1–2 / 3 / 4–5), Pending with Score vs Complete.</td></tr>
+    <tr style="background:#f2f2f7;"><td>Settings</td><td>Gear. Theme, notify lead, demo / live, vendor keys on-device, reset demo / empty, fire notification.</td></tr>
   </tbody>
 </table>
 
-<p>Chrome: floating glass tab bar (five tabs), Dynamic Island analog (next-event countdown), launch overlay (step-mark + wordmark, ~1.55s). Sheets: journal, note, headlines, article, add, CSV, macro, search.</p>
+<p>Chrome: no tab bar. Dynamic Island analog (next-event countdown), launch overlay (step-mark + wordmark, ~1.55s). Sheets: journal, note, headlines, article, add, CSV, macro, search. Retrieve prior IAs at git tags <code>pre-consumer-redesign</code> (five tabs) and <code>three-tabs</code>.</p>
 
 <h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">3. Architecture</h2>
 <pre style="background:#1c1c1e;color:#eceae4;padding:16px 18px;font-size:13px;line-height:1.45;font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;">Web (runnable)
@@ -139,14 +139,14 @@ Native (handoff, not compiled)
   <li>Tint: system blue <code>#007AFF</code> / <code>#0A84FF</code> — interactive chrome only, never a canvas wash</li>
   <li>Semantic green / red for price; orange for estimated / incomplete only</li>
   <li>Type: SF Pro / system UI. Large titles 34pt bold. Review % is SF Display, not a serif</li>
-  <li>Liquid Glass on chrome only (tab bar, island, sheets). Content cards stay solid</li>
+  <li>Liquid Glass on chrome only (island, sheets). Content cards stay solid. No tab bar</li>
   <li>Radii concentric: device 54, screen 44, cards 22, sheets 44 top, pills full-round</li>
 </ul>
 <p><strong>Impact colors (reuse existing tokens, no second palette):</strong> High → <code>--color-negative</code> (red rail + pill). Medium → <code>--color-warn</code> (amber). Low → hairline / muted.</p>
 <p>Tap targets on primary News actions are 44px. Filters are a horizontal chip row so five labels never clip on a 393pt phone.</p>
 
 <h2 style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:-0.02em;">6. News tape and impact ranking</h2>
-<p>The News tab is a tape, not a clipper. It is the brokerage / Yahoo Finance pattern: everything relevant to followed names today, not only scheduled catalysts.</p>
+<p>The tape is not a tab. High-impact stories sit on the desk; the full tape is a push. It is the brokerage / Yahoo Finance pattern: everything relevant to followed names today, not only scheduled catalysts.</p>
 <p><strong>Story kinds</strong> (not limited to these): price-target / rating changes, company announcements, SEC filings (8-K, 10-Q, Form 4), same-day coverage, partnerships, guidance, M&A, FDA, management changes.</p>
 <table cellpadding="8" cellspacing="0" width="100%" style="border-collapse:collapse;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:14px;">
   <thead>

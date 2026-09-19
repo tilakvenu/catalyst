@@ -5,7 +5,7 @@ import { MACRO_CATALOG, useCatalyst } from "@/lib/catalyst/store";
 import type { MacroItem, Ticker, WatchFilter } from "@/lib/catalyst/types";
 import { SEARCH_UNIVERSE } from "@/lib/catalyst/universe";
 import { cn } from "@/lib/utils";
-import { EmptyState, Pill, PrimaryButton, SecondaryButton, SheetFrame } from "./ui";
+import { EmptyState, Pill, PrimaryButton, SecondaryButton, SheetFrame, TopBar } from "./ui";
 
 function useReveal(open: boolean, onToggle: () => void, onOpen: () => void) {
   const startX = useRef<number | null>(null);
@@ -56,18 +56,23 @@ export function WatchlistScreen() {
   }, [q]);
 
   return (
-    <div className="px-4 pb-28 pt-1">
-      <header className="mb-3 flex items-end justify-between pt-1">
-        <h1 className="text-[34px] font-bold leading-none tracking-tight">Names</h1>
-        <button
-          type="button"
-          onClick={() => store.openSheet({ name: "add" })}
-          className="pressable flex h-11 w-11 items-center justify-center rounded-full fill-accent text-[22px] font-medium"
-          aria-label="Add"
-        >
-          +
-        </button>
-      </header>
+    <div className="px-4 pb-10 pt-1">
+      <div className="-mx-2">
+        <TopBar
+          title="Names"
+          onBack={() => store.pop()}
+          trailing={
+            <button
+              type="button"
+              onClick={() => store.openSheet({ name: "add" })}
+              className="pressable mr-2 flex h-11 w-11 items-center justify-center rounded-full fill-accent text-[22px] font-medium"
+              aria-label="Add"
+            >
+              +
+            </button>
+          }
+        />
+      </div>
 
       <label className="mb-3 block">
         <span className="sr-only">Search ticker or event</span>

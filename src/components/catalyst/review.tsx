@@ -7,7 +7,7 @@ import { useCatalyst } from "@/lib/catalyst/store";
 import type { JournalEntry } from "@/lib/catalyst/types";
 import { cn } from "@/lib/utils";
 import { AccuracyChart } from "./charts";
-import { EmptyState, Pill, PrimaryButton } from "./ui";
+import { EmptyState, Pill, PrimaryButton, TopBar } from "./ui";
 
 export function ReviewScreen() {
   const store = useCatalyst();
@@ -52,15 +52,17 @@ export function ReviewScreen() {
   if (convF !== "all") chips.push({ id: "c", label: `Conviction ${convF}`, clear: () => setConvF("all") });
 
   return (
-    <div className="px-4 pb-28 pt-1">
-      <header className="mb-3 pt-1">
-        <h1 className="text-[34px] font-bold leading-none tracking-tight">Record</h1>
-        {pendingAll.length ? (
-          <p className="mt-1.5 text-[13px] text-[var(--fg-muted)]">
-            {pendingAll.length} pending {pendingAll.length === 1 ? "call" : "calls"}
-          </p>
-        ) : null}
-      </header>
+    <div className="px-4 pb-10 pt-1">
+      <div className="-mx-2">
+        <TopBar title="Record" onBack={() => store.pop()} />
+      </div>
+      {pendingAll.length ? (
+        <p className="mb-3 px-1 text-[13px] text-[var(--fg-muted)]">
+          {pendingAll.length} pending {pendingAll.length === 1 ? "call" : "calls"}
+        </p>
+      ) : (
+        <div className="mb-3" />
+      )}
 
       <div className="rounded-[22px] p-4" style={{ background: "var(--bg-card)" }}>
         <p className="text-[13px] uppercase tracking-wide text-[var(--fg-faint)]">Accuracy</p>
@@ -234,7 +236,7 @@ export function ReviewScreen() {
             body={EMPTY_COPY.reviewBody}
             actions={
               pendingAll.length === 0 ? (
-                <PrimaryButton onClick={() => store.setTab("now")}>See what’s next</PrimaryButton>
+                <PrimaryButton onClick={() => store.goDesk()}>See what’s next</PrimaryButton>
               ) : undefined
             }
           />

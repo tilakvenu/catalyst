@@ -123,6 +123,11 @@ export function readyToScore(s: StoreSlice): CatalystEvent[] {
   return s.events.filter((e) => isFollowedEvent(s, e) && suggestedPrint(s, e));
 }
 
+/** Prints that belong on the desk — last two sessions, not last week's leftovers. */
+export function deskReadyToScore(s: StoreSlice): CatalystEvent[] {
+  return readyToScore(s).filter((e) => s.now - new Date(e.startsAt).getTime() <= 48 * 3600000);
+}
+
 export function pendingCount(s: StoreSlice): number {
   return s.entries.filter((e) => isPending(e, s.now)).length;
 }
@@ -130,6 +135,24 @@ export function pendingCount(s: StoreSlice): number {
 export function inboxCount(s: StoreSlice): number {
   const readyIds = new Set(readyToScore(s).map((e) => e.id));
   return readyToScore(s).length + needsCall(s).filter((e) => !readyIds.has(e.id)).length;
+}
+
+export function recordSummary(s: StoreSlice): {
+  pct: number | null;
+  hits: number;
+  scored: number;
+  pending: number;
+} {
+  const scored = s.entries.filter((e) => isScored(e, s.now));
+  const hits = scored.filter(
+    (e) => e.direction && e.actualDirection && e.direction === e.actualDirection,
+  ).length;
+  return {
+    pct: scored.length ? Math.round((hits / scored.length) * 100) : null,
+    hits,
+    scored: scored.length,
+    pending: pendingCount(s),
+  };
 }
 
 export { isEntryComplete, isPending, isScored, missingFields };

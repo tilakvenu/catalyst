@@ -164,7 +164,9 @@ export type Screen =
   | { name: "ticker"; id: string }
   | { name: "event"; id: string }
   | { name: "settings" }
-  | { name: "news" };
+  | { name: "news" }
+  | { name: "names" }
+  | { name: "record" };
 
 export type Sheet =
   | { name: "journal"; eventId: string }

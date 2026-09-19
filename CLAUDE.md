@@ -18,7 +18,7 @@ Also read:
 - Do **not** redesign into a generic dashboard.
 - Do **not** add related-tickers or a backend / accounts.
 - Do **not** bring back navy + amber. Theme is Apple HIG: true black / iOS grouped gray, system-blue tint (`#007AFF` / `#0A84FF`), semantic green/red, orange only for estimated/incomplete.
-- Liquid Glass on **chrome only** (tab bar, island, sheets). Content cards stay solid.
+- Liquid Glass on **chrome only** (island, sheets). Content cards stay solid. No tab bar.
 - Radii concentric: device 54, screen 44, cards 22, sheets 44 top.
 - Journal completion is **derived** from field presence, never a stored flag. Incomplete calls never enter the accuracy %.
 
@@ -38,9 +38,9 @@ Until that passes, say so. Do not claim a Simulator launch if you could not run 
 
 Watch tickers/macros → see catalysts → write a call → score it the session after.
 
-Screens: Now, Names, Record. Tape and Settings are push screens. Ticker, Event, Journal.
+Screens: Desk (home). Names, Record, Tape, Settings are push screens. Ticker, Event, Journal.
 
-Launch overlay analog: SwiftUI overlay on the root that fades into the tab. Do not unmount the app behind a storyboard splash.
+Launch overlay analog: SwiftUI overlay on the root that fades into the desk. Do not unmount the app behind a storyboard splash.
 
 ## Live data
 

@@ -29,20 +29,33 @@ export interface Banner {
   body: string;
 }
 
+export interface LastScore {
+  eventId: string;
+  hit: boolean;
+  kicker: string;
+  title: string;
+  predicted: Direction | null;
+  actual: Direction;
+  movePct: number;
+}
+
 export interface CatalystState extends AppSnapshot {
   tab: TabId;
   stack: Screen[];
   sheet: Sheet | null;
   banner: Banner | null;
+  lastScore: LastScore | null;
   now: number;
   hydrated: boolean;
 
   setTab: (tab: TabId) => void;
+  goDesk: () => void;
   push: (s: Screen) => void;
   pop: () => void;
   openSheet: (s: Sheet) => void;
   closeSheet: () => void;
   tick: (n?: number) => void;
+  dismissLastScore: () => void;
 
   setTheme: (t: ThemePref) => void;
   setDemoMode: (on: boolean) => void;
@@ -144,16 +157,22 @@ export const useCatalyst = create<CatalystState>()(
         stack: [],
         sheet: null,
         banner: null,
+        lastScore: null,
         now: Date.now(),
         hydrated: false,
         newsStatus: "idle" as const,
 
-        setTab: (tab) => set({ tab, stack: [] }),
+        setTab: (tab) => {
+          if (tab === "now") set({ tab: "now", stack: [] });
+          else set({ tab: "now", stack: [{ name: tab }] });
+        },
+        goDesk: () => set({ tab: "now", stack: [] }),
         push: (s) => set({ stack: [...get().stack, s] }),
         pop: () => set({ stack: get().stack.slice(0, -1) }),
         openSheet: (sheet) => set({ sheet }),
         closeSheet: () => set({ sheet: null }),
         tick: (n) => set({ now: n ?? Date.now() }),
+        dismissLastScore: () => set({ lastScore: null }),
 
         setTheme: (theme) => set({ theme }),
         setDemoMode: (demoMode) =>
@@ -177,6 +196,7 @@ export const useCatalyst = create<CatalystState>()(
             tab: "now",
             stack: [],
             sheet: null,
+            lastScore: null,
             emptySeed: false,
             demoMode: true,
             dataSource: "fixture",
@@ -192,6 +212,7 @@ export const useCatalyst = create<CatalystState>()(
             tab: "now",
             stack: [],
             sheet: null,
+            lastScore: null,
             now: Date.now(),
           });
         },
@@ -378,10 +399,21 @@ export const useCatalyst = create<CatalystState>()(
           const existing = get().entries.find((e) => e.eventId === eventId);
           if (!event || !existing) return;
           const ticker = event.tickerId ? get().tickers.find((t) => t.id === event.tickerId) : undefined;
+          const macro = event.macroId ? get().macros.find((m) => m.id === event.macroId) : undefined;
           const move = event.printMovePct ?? ticker?.changePct;
           if (move == null) return;
           const actualDirection = directionFromMove(move);
+          const kicker = ticker?.symbol ?? macro?.shortName ?? "—";
           set({
+            lastScore: {
+              eventId,
+              hit: existing.direction === actualDirection,
+              kicker,
+              title: event.title,
+              predicted: existing.direction,
+              actual: actualDirection,
+              movePct: Number(move.toFixed(2)),
+            },
             entries: get().entries.map((e) =>
               e.eventId === eventId
                 ? {
@@ -622,6 +654,7 @@ export const useCatalyst = create<CatalystState>()(
           stack: _s,
           sheet: _sh,
           banner: _b,
+          lastScore: _ls,
           now: _n,
           hydrated: _h,
           newsStatus: _ns,
@@ -631,6 +664,7 @@ export const useCatalyst = create<CatalystState>()(
         void _s;
         void _sh;
         void _b;
+        void _ls;
         void _n;
         void _h;
         void _ns;
@@ -644,10 +678,10 @@ export const useCatalyst = create<CatalystState>()(
         if (!state) return;
         const fixed = ensureSeed(state);
         if (fixed !== state || fixed.seedVersion !== SEED_VERSION) {
-          useCatalyst.setState({ ...fixed, hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "now", newsStatus: "idle" });
+          useCatalyst.setState({ ...fixed, hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "now", lastScore: null, newsStatus: "idle" });
           return;
         }
-        useCatalyst.setState({ hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "now", newsStatus: "idle" });
+        useCatalyst.setState({ hydrated: true, now: Date.now(), stack: [], sheet: null, tab: "now", lastScore: null, newsStatus: "idle" });
       },
     },
   ),
