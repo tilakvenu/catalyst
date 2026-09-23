@@ -41,8 +41,7 @@ If this session is interrupted, say: **“session got interrupted, continue from
 ## Next if interrupted
 
 C67 web QA is done. Active branch is `versionC67.2`. Do not move `versionC67` or `main`.
-§R is committed. Next: Expo foundation in `mobile/`, then the Reanimated launch.
-No squash, no rebase, no force-push.
+§R, §E, and §A are committed. Expo web is the active app. No squash, no rebase, no force-push.
 
 ## Log
 
@@ -53,3 +52,6 @@ No squash, no rebase, no force-push.
 - 2026-09-19: QA pass. Observed-move only after the name has no upcoming event; wrong-if copy not auto-judged on Record. | next: none.
 
 - 2026-09-23: c67.2 §R — tag C67 at 2258330; branch versionC67.2; versionC5 branch+tag removed after all three refs matched ced85b4 (tag C5 kept); experiment tags moved to archive/* at the same commits. VERSIONS.md + AGENTS.md name versionC67.2 and mobile/. | next: Expo foundation in mobile/.
+- 2026-09-23: c67.2 §E — Expo SDK 57.0.24, Reanimated 4.5.1, react-native-worklets 0.10.1, react-native-svg 15.15.4. Four tabs Catalyst/Calendar/Tape/Record, no badges. Theme tokens match C67. Pure modules imported from src/lib/catalyst via Metro watchFolders (not an npm workspace, so SDK 57 does not auto-wire the root). Existing vitest: 43 passed. | next: launch animation.
+- 2026-09-23: c67.2 §A — Reanimated launch (gravitational collapse) driven only by mobile/src/launch/launch-spec.ts. Frames at 300/900/1500/1850/2100. Reduced motion, cold-launch flag, Replay from About. | next: none.
+- 2026-09-23: C67.3 browser-bound modules still in src/lib/catalyst (do not import into mobile yet): store.ts uses zustand persist (localStorage) and window.Notification; live.ts calls fetch("/api/live"); news-fetch.ts calls fetch against vendor URLs (AbortController, string markup parsing, no DOMParser).

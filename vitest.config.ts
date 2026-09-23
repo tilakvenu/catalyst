@@ -9,7 +9,7 @@ export default defineConfig({
     alias: { "@": path.join(root, "src") },
   },
   test: {
-    include: ["src/lib/catalyst/**/*.test.ts", "src/components/catalyst/**/*.test.ts"],
+    include: ["src/lib/catalyst/**/*.test.ts", "src/components/catalyst/**/*.test.ts", "mobile/src/**/*.test.ts"],
     environment: "node",
   },
 });

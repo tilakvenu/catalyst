@@ -12,7 +12,7 @@ SHAs below are the commits the ref points at (`^{commit}`). Annotated tags also 
 
 | Ref | Commit | What it is |
 |---|---|---|
-| `versionC67.2` | `2258330ca320878b7940e6fe22012a7fcd2d8819` | Current working branch. Expo app lives on this branch under `mobile/`. |
+| `versionC67.2` | moves (opened at `2258330ca320878b7940e6fe22012a7fcd2d8819`) | Current working branch. Expo app lives on this branch under `mobile/`. |
 | `versionC67` | `2258330ca320878b7940e6fe22012a7fcd2d8819` | Frozen branch for the C67 web app. Do not move it. |
 | `main` | `ced85b4cbf70fe48949b2e8fbe7b2ca213d7d4e4` | Old default. C5 web app. Not current. |
 | `C67` | `2258330ca320878b7940e6fe22012a7fcd2d8819` | Annotated tag. Frozen web design reference. |
