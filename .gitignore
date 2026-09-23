@@ -13,5 +13,4 @@ dist/
 native/Catalyst/Secrets.swift
 .node_modules.lock
 .project_id
-AGENTS.md
 public/__grok/
