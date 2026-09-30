@@ -7,7 +7,10 @@
 import { loadEnv } from "./env.ts";
 import { makeRest, ParseError } from "./rest.ts";
 
-export const SCHEMA_VERSION = 1;
+// v1: classes, fields, CLPs, indexes.
+// v2: _User hides email/authData from other users; owner pointer permissions on WatchItem, Call, CallRevision
+//     (CallRevision gains an owner pointer).
+export const SCHEMA_VERSION = 2;
 
 type Field = { type: string; targetClass?: string };
 type Clp = Record<string, unknown>;
@@ -27,12 +30,26 @@ const base = { protectedFields: { "*": [] }, addField: NOBODY };
 
 /** Reference data: any signed-in user reads, only the master key (seed, Cloud Code) writes. */
 const readOnlyClp: Clp = { ...base, find: SIGNED_IN, get: SIGNED_IN, count: SIGNED_IN, create: NOBODY, update: NOBODY, delete: NOBODY };
-/** Per-user rows: signed-in users create/read/update/delete; ACLs set in beforeSave keep rows owner-only. */
-const ownedClp: Clp = { ...base, find: SIGNED_IN, get: SIGNED_IN, count: SIGNED_IN, create: SIGNED_IN, update: SIGNED_IN, delete: SIGNED_IN };
-/** Server-only history: owner reads through the ACL Cloud Code sets; clients never write. */
-const serverWrittenClp: Clp = { ...base, find: SIGNED_IN, get: SIGNED_IN, count: SIGNED_IN, create: NOBODY, update: NOBODY, delete: NOBODY };
-/** Sign-up stays public; listing users is master-only; account deletion goes through the deleteAccount function. */
-const userClp: Clp = { ...base, find: NOBODY, count: NOBODY, get: SIGNED_IN, create: { "*": true }, update: SIGNED_IN, delete: NOBODY };
+// Owner-only reads use pointer permissions as a second lock beside the row ACL. find/get/count must be
+// empty ({}) for this to bite: Parse approves `requiresAuthentication` before it ever reads readUserFields
+// (SchemaController.validatePermission, 7.5.2). With {}, Parse adds `owner == current user` to every client query.
+const OWNER_READ = { find: NOBODY, get: NOBODY, count: NOBODY, readUserFields: ["owner"] };
+/** Per-user rows: owner reads (pointer permission + ACL); signed-in users create/update/delete, ACL keeps it to their own rows. */
+const ownedClp: Clp = { ...base, ...OWNER_READ, create: SIGNED_IN, update: SIGNED_IN, delete: SIGNED_IN };
+/** Server-only history: owner reads (pointer permission + ACL Cloud Code sets); clients never write. */
+const serverWrittenClp: Clp = { ...base, ...OWNER_READ, create: NOBODY, update: NOBODY, delete: NOBODY };
+/** Sign-up stays public; listing users is master-only; account deletion goes through deleteAccount.
+ *  email/authData are hidden from other users; Parse always shows a user their own record in full. */
+const userClp: Clp = {
+  ...base,
+  protectedFields: { "*": ["email", "authData"] },
+  find: NOBODY,
+  count: NOBODY,
+  get: SIGNED_IN,
+  create: { "*": true },
+  update: SIGNED_IN,
+  delete: NOBODY,
+};
 
 // Pointer index keys use Parse's Mongo column name (_p_<field>); Parse validates them against <field>.
 // updatedAt is stored as _updated_at, which Parse's schema API cannot index (see DEFERRED.md).
@@ -113,9 +130,9 @@ export const SCHEMA: Record<string, ClassSpec> = {
     indexes: { owner_event: { _p_owner: 1, _p_event: 1 } },
   },
   CallRevision: {
-    fields: { call: ptr("Call"), snapshot: obj },
+    fields: { call: ptr("Call"), owner: ptr("_User"), snapshot: obj },
     clp: serverWrittenClp,
-    indexes: { call_1: { _p_call: 1 } },
+    indexes: { call_1: { _p_call: 1 }, owner_1: { _p_owner: 1 } },
   },
 };
 
