@@ -10,7 +10,9 @@ import { makeRest, ParseError } from "./rest.ts";
 // v1: classes, fields, CLPs, indexes.
 // v2: _User hides email/authData from other users; owner pointer permissions on WatchItem, Call, CallRevision
 //     (CallRevision gains an owner pointer).
-export const SCHEMA_VERSION = 2;
+// v3: CatalystEvent.typicalMovePct, the typical-session band recorded with printMovePct. The server has no
+//     price history, so tick scores a call only once both numbers exist (see DEFERRED.md).
+export const SCHEMA_VERSION = 3;
 
 type Field = { type: string; targetClass?: string };
 type Clp = Record<string, unknown>;
@@ -81,6 +83,7 @@ export const SCHEMA: Record<string, ClassSpec> = {
       consensus: arr,
       consensusSource: str,
       printMovePct: num,
+      typicalMovePct: num,
     },
     clp: readOnlyClp,
     indexes: { startsAt_1: { startsAt: 1 } },

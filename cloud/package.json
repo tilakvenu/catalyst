@@ -1,0 +1,25 @@
+{
+  "name": "catalyst-cloud",
+  "private": true,
+  "type": "module",
+  "description": "Back4App (Parse Server 7.5.2) backend for Catalyst: schema, Cloud Code referee, seed, live tests. Scripts read cloud/.env and never print keys.",
+  "scripts": {
+    "check": "node --no-warnings check.ts",
+    "schema": "node --no-warnings schema.ts",
+    "schema:check": "node --no-warnings schema.ts --check",
+    "build": "node build.mjs",
+    "deploy": "node build.mjs && node --no-warnings deploy.ts",
+    "deploy:list": "node --no-warnings deploy.ts --list",
+    "seed": "node run.mjs seed.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "test:unit": "node run.mjs src/referee.test.ts",
+    "test:privacy": "node --no-warnings test/privacy.ts",
+    "test:cheat": "node --no-warnings test/cheat.ts",
+    "scan-keys": "node --no-warnings scan-keys.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "esbuild": "0.28.2",
+    "typescript": "^5.7.0"
+  }
+}
