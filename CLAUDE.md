@@ -16,11 +16,20 @@ Also read:
 ## Hard rules
 
 - Do **not** redesign into a generic dashboard.
-- Do **not** add related-tickers or a backend / accounts.
+- Do **not** add related-tickers.
 - Do **not** bring back navy + amber. Theme is Apple HIG: true black / iOS grouped gray, system-blue tint (`#007AFF` / `#0A84FF`), semantic green/red, orange only for estimated/incomplete.
 - Liquid Glass on **chrome only** (tab bar, island, sheets). Content cards stay solid.
 - Radii concentric: device 54, screen 44, cards 22, sheets 44 top.
 - Journal completion is **derived** from field presence, never a stored flag. Incomplete calls never enter the accuracy %.
+
+## Architecture (C67.3)
+
+- **App:** Expo (React Native) in `mobile/`. See `VERSIONS.md` for the current branch.
+- **Backend:** Back4App (Parse Server), one app named `catalyst`. Schema, Cloud Code, seed and tests live in `cloud/`.
+- **Server is the referee.** Accounts, locking, evidence, scoring outcomes and ownership are enforced in Cloud Code, not trusted from the client.
+- **App keys** (Application ID, JavaScript key, server URL) live in gitignored `mobile/.env` and `cloud/.env`. Commit only the `.env.example` templates with blank values.
+- **Master key is server-side only:** `cloud/.env` for local scripts. Never in `mobile/`, app code, commits, logs, or chat.
+- **No vendor keys on the phone.** Any vendor calls happen server-side (live headline ingest is deferred).
 
 ## What to build on a Mac
 
@@ -53,4 +62,4 @@ Views never call vendors. Rotate on 429:
 - metrics: Finnhub → AV OVERVIEW
 - macro: Finnhub economic calendar → AV series → NY Fed EFFR / BLS
 
-Keys stay on device. Free tier only.
+Vendor keys stay off the phone; vendor calls run server-side. Free tier only.
