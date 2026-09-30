@@ -20,7 +20,8 @@
     "seed:demo:cleanup": "node run.mjs seed-demo.ts --cleanup",
     "seed:demo:plan": "node run.mjs seed-demo.ts --plan",
     "test:app": "node run-app.mjs test/app-layer.ts",
-    "test:smoke": "node --no-warnings test/smoke.ts"
+    "test:smoke": "node --no-warnings test/smoke.ts",
+    "test:budget": "node run-app.mjs test/budget.ts 20"
   },
   "devDependencies": {
     "@types/node": "^22.16.5",
