@@ -13,3 +13,8 @@ Not in this drop. Do not implement on `versionC67` unless the brief is reopened.
 - Push notification server (`UNUserNotificationCenter` analog stays local/debug)
 - Related-tickers / sector recommendations (explicitly rejected)
 - Empirical impact from historical prints: record impact class against the realized next-session move, then show the actual distribution per class once enough observations exist. Prototype has no history to train on.
+
+## C67.3 backend (branch c67.3-backend)
+
+- **`updatedAt` indexes for delta sync.** Parse Server 7.5.2's schema API validates index keys against Parse field names but passes them to MongoDB unchanged, and MongoDB stores `updatedAt` as `_updated_at`. So `{updatedAt: 1}` would index a column that does not exist and `{_updated_at: 1}` is rejected. Delta-sync queries are instead narrowed by `owner_1` (WatchItem), `owner_event` (Call), `startsAt_1` (CatalystEvent), and `ticker_/macro_firstSeenAt` (Headline); Ticker/MacroSeries are tiny. Real `_updated_at` indexes need direct MongoDB access (Back4App connection string), not the Parse API.
+- **Database-level unique index on Call(owner, event).** Same limitation: the schema API only creates non-unique indexes. `beforeSave Call` enforces one Call per (owner, event) with a query, which leaves a narrow race if the same user creates the first Call for an event from two devices within the same instant. Closing it fully needs a unique index created directly in MongoDB.
