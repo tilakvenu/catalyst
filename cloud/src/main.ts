@@ -292,22 +292,28 @@ Parse.Cloud.define(
       delta(new Parse.Query("MacroSeries")).limit(100).find(asUser),
     ]);
 
-    const tickerIds = allWatch.map((w: PObj) => w.get("ticker")).filter(Boolean);
-    const macroIds = allWatch.map((w: PObj) => w.get("macro")).filter(Boolean);
+    // Desk headlines. On a delta, names watched since the last sync get their full recent set
+    // (their headlines are older than `since`); names already watched get only changed rows.
     const deskSince = new Date(now - DESK_HEADLINE_DAYS * DAY);
-    const nameQueries = [
-      tickerIds.length && new Parse.Query("Headline").containedIn("ticker", tickerIds),
-      macroIds.length && new Parse.Query("Headline").containedIn("macro", macroIds),
-    ].filter(Boolean);
-    const [headlines, callIdRows] = await Promise.all([
-      nameQueries.length
-        ? delta(Parse.Query.or(...nameQueries).greaterThanOrEqualTo("firstSeenAt", deskSince))
-            .descending("firstSeenAt")
-            .limit(DESK_HEADLINE_LIMIT)
-            .find(asUser)
-        : [],
+    const deskQuery = (watch: PObj[], onlyChanged: boolean) => {
+      const tickers = watch.map((w: PObj) => w.get("ticker")).filter(Boolean);
+      const macros = watch.map((w: PObj) => w.get("macro")).filter(Boolean);
+      const parts = [
+        tickers.length && new Parse.Query("Headline").containedIn("ticker", tickers),
+        macros.length && new Parse.Query("Headline").containedIn("macro", macros),
+      ].filter(Boolean);
+      if (!parts.length) return Promise.resolve([]);
+      const q = Parse.Query.or(...parts).greaterThanOrEqualTo("firstSeenAt", deskSince).descending("firstSeenAt").limit(DESK_HEADLINE_LIMIT);
+      return (onlyChanged ? q.greaterThan("updatedAt", since) : q).find(asUser);
+    };
+    const newlyWatched = since ? allWatch.filter((w: PObj) => w.createdAt > since) : allWatch;
+    const alreadyWatched = since ? allWatch.filter((w: PObj) => w.createdAt <= since) : [];
+    const [fresh, changed, callIdRows] = await Promise.all([
+      deskQuery(newlyWatched, false),
+      deskQuery(alreadyWatched, true),
       since ? new Parse.Query("Call").equalTo("owner", user).select("event").limit(1000).find(asUser) : [],
     ]);
+    const headlines = [...new Map([...fresh, ...changed].map((h: PObj) => [h.id, h])).values()];
 
     // Events: the window, plus anything a returned call points at (included above, no extra query).
     const events = new Map<string, EventDTO>();

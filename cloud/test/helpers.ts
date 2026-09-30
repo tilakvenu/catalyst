@@ -58,6 +58,12 @@ export async function cleanupTestUsers(): Promise<{ users: number; rows: number 
     }
     await rest.request("DELETE", `users/${u.objectId}`);
   }
+  // Test-only events (title test-*), created with the master key by tests.
+  const { results: evs } = await rest.request<{ results: { objectId: string }[] }>(
+    "GET",
+    `classes/CatalystEvent?${where({ title: { $regex: `^${TEST_PREFIX}` } })}&limit=1000&keys=objectId`,
+  );
+  for (const e of evs) await rest.request("DELETE", `classes/CatalystEvent/${e.objectId}`);
   const left = await rest.request<{ count: number }>(
     "GET",
     `classes/_User?${where({ username: { $regex: `^${TEST_PREFIX}` } })}&count=1&limit=0`,
@@ -69,5 +75,6 @@ export async function cleanupTestUsers(): Promise<{ users: number; rows: number 
       rows += r.count;
     }
   }
+  rows += (await rest.request<{ count: number }>("GET", `classes/CatalystEvent?${where({ title: { $regex: `^${TEST_PREFIX}` } })}&count=1&limit=0`)).count;
   return { users: left.count, rows };
 }
