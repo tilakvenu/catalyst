@@ -15,7 +15,12 @@
     "test:unit": "node run.mjs src/referee.test.ts",
     "test:privacy": "node --no-warnings test/privacy.ts",
     "test:cheat": "node --no-warnings test/cheat.ts",
-    "scan-keys": "node --no-warnings scan-keys.ts"
+    "scan-keys": "node --no-warnings scan-keys.ts",
+    "seed:demo": "node run.mjs seed-demo.ts",
+    "seed:demo:cleanup": "node run.mjs seed-demo.ts --cleanup",
+    "seed:demo:plan": "node run.mjs seed-demo.ts --plan",
+    "test:app": "node run-app.mjs test/app-layer.ts",
+    "test:smoke": "node --no-warnings test/smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^22.16.5",
