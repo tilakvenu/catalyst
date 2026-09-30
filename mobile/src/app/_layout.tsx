@@ -9,6 +9,7 @@ import { hasPlayedLaunch, markLaunchPlayed, subscribeReplay } from "../launch/se
 import { shouldSkipForWebdriver } from "../launch/launch-spec";
 import { themeFor, type ThemeName } from "../theme";
 import { SCORING_RULE_VERSION } from "../lib/shared";
+import { DataRoot } from "../data/DataRoot";
 
 if (SCORING_RULE_VERSION !== 1) {
   throw new Error("C67 scoring rule did not load");
@@ -48,6 +49,7 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <DataRoot theme={theme}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -56,7 +58,9 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="about" options={{ headerShown: true, title: "About", presentation: "card" }} />
+        <Stack.Screen name="backend-check" options={{ headerShown: true, title: "Backend check", presentation: "card" }} />
       </Stack>
+      </DataRoot>
       {showLaunch ? (
         <LaunchOverlay
           key={replayKey}

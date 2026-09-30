@@ -12,7 +12,14 @@ const config = getDefaultConfig(projectRoot);
 config.watchFolders = [repoRoot];
 
 const upstreamResolve = config.resolver.resolveRequest;
+const cryptoShim = path.resolve(projectRoot, "src/data/crypto-shim.ts");
+const parsePackage = `${path.sep}node_modules${path.sep}parse${path.sep}`;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Parse 8's React Native build requires Node's `crypto` for randomUUID (Parse-SDK-JS#2856, #3095).
+  // Only for requests from inside the parse package, point it at the expo-crypto shim.
+  if (moduleName === "crypto" && context.originModulePath.includes(parsePackage)) {
+    return { type: "sourceFile", filePath: cryptoShim };
+  }
   // C67 sources import their siblings with an explicit `.ts` extension.
   // Metro would otherwise look for `file.ts.ts`.
   if (moduleName.endsWith(".ts") || moduleName.endsWith(".tsx")) {
