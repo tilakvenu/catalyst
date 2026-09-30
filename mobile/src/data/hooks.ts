@@ -5,6 +5,7 @@ import {
   BOOTSTRAP_AHEAD_DAYS,
   BOOTSTRAP_PAST_DAYS,
   EVIDENCE_MAX_IDS,
+  type CallDTO,
   type CalendarResult,
   type EvidenceResult,
   type HeadlineDTO,
@@ -138,28 +139,30 @@ export interface RecordStats {
   calibration: ReturnType<typeof calibrationCopy>;
 }
 
-/** Cached calls scored with C67 scoring.ts. Zero requests; nothing stored server-side. */
+/** Record stats from calls with C67 scoring.ts. Pure: no requests, nothing stored server-side. */
+export function computeRecord(calls: CallDTO[], now: number): RecordStats {
+  const entries = calls.map(toEntry);
+  const scored = entries.filter((e) => isScored(e, now));
+  const hits = scored.filter((e) => e.direction === e.actualDirection).length;
+  const bands = convictionBands(scored);
+  return {
+    entries,
+    scored,
+    pending: entries.filter((e) => isPending(e, now)),
+    unresolvable: entries.filter(isUnresolvable),
+    accuracy: { n: scored.length, hits, pct: scored.length ? Math.round((hits / scored.length) * 100) : null },
+    rolling: rollingAccuracy(scored),
+    bands,
+    captured: capturedMove(scored),
+    calibration: calibrationCopy(bands, scored.length),
+  };
+}
+
+/** Cached calls scored with C67 scoring.ts. Zero requests. */
 export function useRecord(now = Date.now()): RecordStats {
   const s = useCache();
   const hour = Math.floor(now / 3600000);
-  return useMemo(() => {
-    const t = hour * 3600000;
-    const entries = Object.values(s.calls).map(toEntry);
-    const scored = entries.filter((e) => isScored(e, t));
-    const hits = scored.filter((e) => e.direction === e.actualDirection).length;
-    const bands = convictionBands(scored);
-    return {
-      entries,
-      scored,
-      pending: entries.filter((e) => isPending(e, t)),
-      unresolvable: entries.filter(isUnresolvable),
-      accuracy: { n: scored.length, hits, pct: scored.length ? Math.round((hits / scored.length) * 100) : null },
-      rolling: rollingAccuracy(scored),
-      bands,
-      captured: capturedMove(scored),
-      calibration: calibrationCopy(bands, scored.length),
-    };
-  }, [s.calls, hour]);
+  return useMemo(() => computeRecord(Object.values(s.calls), hour * 3600000), [s.calls, hour]);
 }
 
 // ---------- evidence ----------
