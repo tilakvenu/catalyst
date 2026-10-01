@@ -7,7 +7,7 @@ import { countdown, formatPct, formatWhen } from "../../../../src/lib/catalyst/f
 import { entryFor, isUrgent, kindLabel, pastFollowed, upcomingFollowed } from "../../../../src/lib/catalyst/selectors.ts";
 import type { PastFilter } from "../../../../src/lib/catalyst/types.ts";
 import { addWatch } from "../../data";
-import { Card, Press, PrimaryButton, PushScreen, Segmented, SectionTitle, TABULAR, tight, useC, wide } from "../../ui/kit";
+import { Card, Press, PrimaryButton, PushScreen, Segmented, SectionTitle, TABULAR, tight, useC } from "../../ui/kit";
 import { HeadlineRow, openEvent, openJournal } from "../../ui/parts";
 import { useSlice } from "../../ui/slice";
 
@@ -122,7 +122,6 @@ export default function TickerScreen() {
         })}
         {filtered.length === 0 ? <Text style={{ color: c.faint, fontSize: 13, paddingVertical: 16 }}>No matching past events.</Text> : null}
       </View>
-      <Text style={{ color: c.faint, fontSize: 11, marginTop: 16, letterSpacing: wide(11) }}> </Text>
     </PushScreen>
   );
 }

@@ -2,16 +2,18 @@
 // pull down / "Sync now", and the two Debug actions (for the Phase 6 cross-device check; remove once
 // the real Names and Journal screens are ported).
 import { useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useColorScheme, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { addWatch, backendConfigured, currentUser, lockCall, refresh, saveDraft, useRecord, useSyncState, useWatchlist } from "../data";
 import { getCache } from "../data/cache";
-import { themeFor, type ThemeColors, type ThemeName } from "../theme";
+import type { ThemeColors } from "../theme";
+import { useTheme } from "../ui/theme-context";
 
 function DebugActions({ theme, enabled }: { theme: ThemeColors; enabled: boolean }) {
   const wl = useWatchlist();
   const rec = useRecord();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [devOpen, setDevOpen] = useState(false);
   const events = getCache().events;
 
   const watched = [
@@ -72,7 +74,17 @@ function DebugActions({ theme, enabled }: { theme: ThemeColors; enabled: boolean
           <Text selectable style={[styles.value, { color: theme.fg }]}>{calls.length ? calls.join("\n") : "none yet"}</Text>
         </View>
       </View>
-      <Text style={[styles.section, { color: theme.muted, marginTop: 24 }]}>DEBUG ACTIONS</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: devOpen }}
+        onPress={() => setDevOpen(!devOpen)}
+        style={{ marginTop: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
+      >
+        <Text style={[styles.section, { color: theme.muted, marginBottom: 0 }]}>DEVELOPER</Text>
+        <Text style={{ color: theme.accent, fontSize: 13, fontWeight: "500", marginRight: 16 }}>{devOpen ? "Hide" : "Show"}</Text>
+      </Pressable>
+      {devOpen ? (
+      <View style={{ marginTop: 8 }}>
       <Pressable accessibilityRole="button" onPress={watchTwo} disabled={busy || !enabled} style={[styles.button, { marginTop: 0, backgroundColor: theme.card, opacity: busy || !enabled ? 0.5 : 1 }]}>
         <Text style={[styles.buttonText, { color: theme.accent }]}>Watch AAPL + CPI</Text>
       </Pressable>
@@ -80,14 +92,15 @@ function DebugActions({ theme, enabled }: { theme: ThemeColors; enabled: boolean
         <Text style={[styles.buttonText, { color: theme.accent }]}>Lock a sample AAPL call</Text>
       </Pressable>
       {msg ? <Text style={[styles.note, { color: theme.fg }]}>{msg}</Text> : null}
-      <Text style={[styles.note, { color: theme.faint }]}>For the cross-device check. Watch = 1 request per name added; lock = 1 request.</Text>
+      <Text style={[styles.note, { color: theme.faint }]}>Debug actions for the cross-device check. Watch = 1 request per name added; lock = 1 request.</Text>
+      </View>
+      ) : null}
     </View>
   );
 }
 
 export default function BackendCheckScreen() {
-  const scheme: ThemeName = useColorScheme() === "light" ? "light" : "dark";
-  const theme = themeFor(scheme);
+  const theme = useTheme().c;
   const s = useSyncState();
   const [pulling, setPulling] = useState(false);
   const user = currentUser();

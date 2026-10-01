@@ -33,8 +33,8 @@ Measured with `cloud/test/app-layer.ts` against the live backend: sign-up 2, eac
 | `currentUser()` | → `{ id, email } \| null` from memory, no request | anywhere |
 | `signUp(email, password)` | → `SessionUser`. 2 requests (sign-up + first sync). Username is the email. | `AuthScreen` |
 | `signIn(email, password)` | → `SessionUser`. 2 requests (log-in + sync). | `AuthScreen` |
-| `signOut()` | 1 request; clears this device's cache | About |
-| `deleteAccount()` | → `{ deleted: { callRevisions, calls, watchItems, sessions, user } }`. 1 request. Server deletes everything, then the device forgets the user. | About |
+| `signOut()` | 1 request; clears this device's cache | Settings |
+| `deleteAccount()` | → `{ deleted: { callRevisions, calls, watchItems, sessions, user } }`. 1 request. Server deletes everything, then the device forgets the user. | Settings |
 
 ## Watchlist
 
@@ -71,7 +71,7 @@ The server, not the phone, sets `lockedAt`, `evidenceIds` (the event's headlines
 
 ## Debug
 
-`useSyncState()` → `{ syncing, error, requestCount, lastSyncAt, lastSyncReason, cursor, counts }`. `requestCount` counts every request the Parse SDK sent this session. Shown on **gear → About → Backend check** (`app/backend-check.tsx`).
+`useSyncState()` → `{ syncing, error, requestCount, lastSyncAt, lastSyncReason, cursor, counts }`. `requestCount` counts every request the Parse SDK sent this session. Shown on **gear → Settings → Backend check** (`app/backend-check.tsx`).
 
 `refresh()` is pull-to-refresh. Wire it to `RefreshControl` on list screens; nothing else should call it.
 
