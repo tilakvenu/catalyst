@@ -90,11 +90,11 @@ export default function CalendarTab() {
         <>
           <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 }}>
             <Press label="Previous month" onPress={() => shiftMonth(-1)} style={{ height: 44, paddingHorizontal: 8, justifyContent: "center" }}>
-              <Text style={{ color: c.accent, fontSize: 22, fontWeight: "600" }}>‹</Text>
+              <Text style={{ color: c.accent, fontSize: 15, fontWeight: "600" }}>‹</Text>
             </Press>
             <Text style={{ color: c.fg, fontSize: 17, fontWeight: "600", letterSpacing: tight(17) }}>{monthLabel}</Text>
             <Press label="Next month" onPress={() => shiftMonth(1)} style={{ height: 44, paddingHorizontal: 8, justifyContent: "center" }}>
-              <Text style={{ color: c.accent, fontSize: 22, fontWeight: "600" }}>›</Text>
+              <Text style={{ color: c.accent, fontSize: 15, fontWeight: "600" }}>›</Text>
             </Press>
           </View>
           <View style={{ marginTop: 8, flexDirection: "row" }}>

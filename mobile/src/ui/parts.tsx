@@ -131,7 +131,16 @@ export function AccuracyChart({ points }: { points: { t: string; pct: number }[]
   const x = (i: number) => padL + (points.length > 1 ? (i / (points.length - 1)) * plotW : plotW / 2);
   const y = (pct: number) => padT + (1 - pct / 100) * plotH;
   const path = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.pct).toFixed(1)}`).join(" ");
-  const labelIdx = points.length <= 3 ? points.map((_, i) => i) : [0, Math.floor((points.length - 1) / 2), points.length - 1];
+  // Recharts XAxis default (interval "preserveEnd"): keep the last label, then walk back
+  // showing every label that does not overlap. A "Sep 12" label at 11px is about 36px.
+  const labelGap = 42;
+  const labelIdx: number[] = [];
+  for (let i = points.length - 1, lastX = Infinity; i >= 0; i--) {
+    if (lastX - x(i) >= labelGap) {
+      labelIdx.push(i);
+      lastX = x(i);
+    }
+  }
   return (
     <View style={{ height: h, width: "100%" }} onLayout={onLayout}>
       {w ? (
