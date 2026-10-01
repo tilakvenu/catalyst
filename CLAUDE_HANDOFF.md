@@ -1,3 +1,5 @@
+Outdated. See HANDOFF.md.
+
 # Handoff for Claude Design / the rest of the group
 
 **Start here in Claude: [`CLAUDE.md`](CLAUDE.md).** This file is the longer checklist.

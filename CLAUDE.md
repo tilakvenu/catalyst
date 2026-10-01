@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+Read HANDOFF.md first.
+
 You are continuing **Catalyst**, an iPhone earnings/macro trading journal. Read this file fully before writing Swift or changing the visual system.
 
 This repo is the class handoff from Grok Build (Linux, no Xcode). The **web iPhone simulation is the visual source of truth**. Native stubs in `native/` have **not been compiled**.
