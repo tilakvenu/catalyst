@@ -20,6 +20,16 @@ export type ThemeColors = {
   warn: string;
   impactHigh: string;
   impactMed: string;
+  /** C67 --fill-urgency: calm event edge, neutral bar segments, toggle track. */
+  urgency: string;
+  /** C67 --glass / --glass-stroke: chrome only (tab bar). */
+  glass: string;
+  glassStroke: string;
+  /** C67 --seg-track / --seg-thumb: segmented controls and filter chips. */
+  segTrack: string;
+  segThumb: string;
+  /** C67 --tab-idle. */
+  tabIdle: string;
 };
 
 export const darkTheme: ThemeColors = {
@@ -37,6 +47,12 @@ export const darkTheme: ThemeColors = {
   warn: "#ff9f0a",
   impactHigh: "#bf5af2",
   impactMed: "#a971c7",
+  urgency: "#3a3a3c",
+  glass: "#2c2c2e",
+  glassStroke: "#545458",
+  segTrack: "#2c2c2e",
+  segThumb: "#636366",
+  tabIdle: "#8e8e93",
 };
 
 export const lightTheme: ThemeColors = {
@@ -54,7 +70,19 @@ export const lightTheme: ThemeColors = {
   warn: "#ff9500",
   impactHigh: "#af52de",
   impactMed: "#925fae",
+  urgency: "#d1d1d6",
+  glass: "#f7f7f8",
+  glassStroke: "#d1d1d6",
+  segTrack: "#e5e5ea",
+  segThumb: "#ffffff",
+  tabIdle: "#8e8e93",
 };
+
+/** C67 color-mix(in srgb, <hex> N%, transparent) as rgba. */
+export function alpha(hexColor: string, a: number): string {
+  const [r, g, b] = hex(hexColor);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
 
 export function themeFor(name: ThemeName): ThemeColors {
   return name === "light" ? lightTheme : darkTheme;

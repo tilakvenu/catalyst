@@ -1,23 +1,14 @@
 import { Tabs } from "expo-router";
-import { useColorScheme } from "react-native";
-import { themeFor, type ThemeName } from "../../theme";
+import { GlassTabBar } from "../../ui/TabBar";
+import { useTheme } from "../../ui/theme-context";
 
 export default function TabLayout() {
-  const scheme: ThemeName = useColorScheme() === "light" ? "light" : "dark";
-  const theme = themeFor(scheme);
+  const { c } = useTheme();
   return (
     <Tabs
       initialRouteName="index"
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.accent,
-        tabBarInactiveTintColor: theme.muted,
-        tabBarStyle: {
-          backgroundColor: theme.elevated,
-          borderTopColor: theme.hairline,
-        },
-        tabBarShowLabel: true,
-      }}
+      tabBar={(props) => <GlassTabBar {...props} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.bg } }}
     >
       <Tabs.Screen name="index" options={{ title: "Catalyst" }} />
       <Tabs.Screen name="calendar" options={{ title: "Calendar" }} />
