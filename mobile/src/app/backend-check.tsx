@@ -1,6 +1,6 @@
-// Gear > About > Backend check. Reads the cache and counters only. Requests happen only on a tap:
-// pull down / "Sync now", and the two Debug actions (for the Phase 6 cross-device check; remove once
-// the real Names and Journal screens are ported).
+// Gear > About > Backend check (__DEV__ builds only). Reads the cache and counters only. Requests
+// happen only on a tap: pull down / "Sync now", and the two Developer actions.
+import { Redirect } from "expo-router";
 import { useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { addWatch, backendConfigured, currentUser, lockCall, refresh, saveDraft, useRecord, useSyncState, useWatchlist } from "../data";
@@ -100,6 +100,11 @@ function DebugActions({ theme, enabled }: { theme: ThemeColors; enabled: boolean
 }
 
 export default function BackendCheckScreen() {
+  if (!__DEV__) return <Redirect href="/" />;
+  return <BackendCheck />;
+}
+
+function BackendCheck() {
   const theme = useTheme().c;
   const s = useSyncState();
   const [pulling, setPulling] = useState(false);

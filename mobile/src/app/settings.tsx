@@ -1,24 +1,19 @@
 // C67 settings.tsx (push from the Catalyst gear), merged with the old About screen.
-// Kept: Notifications timing, Appearance, Account, About. Dropped (no longer meaningful with a backend):
+// Kept: Appearance, Account, About. Dropped (no longer meaningful with a backend):
 // Demo mode / Live API keys (no vendor keys on the phone), Demo flows, Synthetic model, Seed reset.
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// Notification timing is dropped until there is a notification backend (DEFERRED.md).
+// Backend check is a developer tool: only in __DEV__ builds.
+import Constants from "expo-constants";
 import { router } from "expo-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Alert, Platform, Text, View } from "react-native";
-import { BUILD_NAME, C5_SHA, SCORING_RULE_VERSION } from "../../../src/lib/catalyst/build.ts";
-import { FLAT_BAND_MULTIPLE } from "../../../src/lib/catalyst/scoring.ts";
-import type { NotifyLead, ThemePref } from "../../../src/lib/catalyst/types.ts";
+import type { ThemePref } from "../../../src/lib/catalyst/types.ts";
 import { deleteAccount, signOut, useSession } from "../data";
 import { requestReplay } from "../launch/session";
 import { CatalystMark, Divider, Press, PrimaryButton, PushScreen, SecondaryButton, useC, wide } from "../ui/kit";
 import { useTheme } from "../ui/theme-context";
 
-const NOTIFY_KEY = "catalyst.notifyLead.v1";
-const NOTIFY_OPTIONS: { id: NotifyLead; label: string }[] = [
-  { id: "both", label: "24 hours and 1 hour" },
-  { id: "24h", label: "24 hours only" },
-  { id: "1h", label: "1 hour only" },
-];
+const VERSION = Constants.expoConfig?.version ?? "";
 
 /** Alert.alert is a no-op on react-native-web, so web uses window.confirm. */
 function confirm(title: string, message: string, action: string): Promise<boolean> {
@@ -35,17 +30,8 @@ export default function SettingsScreen() {
   const c = useC();
   const { pref, setPref } = useTheme();
   const session = useSession();
-  const [lead, setLead] = useState<NotifyLead>("both");
   const [busy, setBusy] = useState<null | "signOut" | "delete">(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    AsyncStorage.getItem(NOTIFY_KEY)
-      .then((v) => {
-        if (v === "both" || v === "24h" || v === "1h") setLead(v);
-      })
-      .catch(() => {});
-  }, []);
 
   const account = async (kind: "signOut" | "delete") => {
     if (kind === "delete") {
@@ -66,29 +52,6 @@ export default function SettingsScreen() {
 
   return (
     <PushScreen title="Settings" trailing={<View style={{ marginRight: 8 }}><CatalystMark size={22} color={c.fg} accent={c.accent} /></View>}>
-      <Group title="Notifications">
-        <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-          <Text style={{ color: c.fg, fontSize: 15, marginBottom: 8 }}>Alert timing</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {NOTIFY_OPTIONS.map((o) => (
-              <Choice
-                key={o.id}
-                on={lead === o.id}
-                label={o.label}
-                onPress={() => {
-                  setLead(o.id);
-                  AsyncStorage.setItem(NOTIFY_KEY, o.id).catch(() => {});
-                }}
-              />
-            ))}
-          </View>
-        </View>
-        <Divider />
-        <Text style={{ color: c.faint, fontSize: 12, lineHeight: 19, paddingHorizontal: 16, paddingVertical: 12 }}>
-          Only real workflow state: an unlocked call before a print, a material filing, or a result ready. No “come back” nag. Saved on this phone; push alerts are not wired up yet.
-        </Text>
-      </Group>
-
       <Group title="Appearance">
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
           <Text style={{ color: c.fg, fontSize: 15 }}>Theme</Text>
@@ -122,13 +85,12 @@ export default function SettingsScreen() {
 
       <Group title="About">
         <View style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
-          <Text style={{ color: c.faint, fontSize: 12, fontWeight: "600", letterSpacing: -0.24 }}>{BUILD_NAME}.3</Text>
+          <Text style={{ color: c.faint, fontSize: 12, fontWeight: "600", letterSpacing: -0.24 }}>Catalyst {VERSION}</Text>
           <Text style={{ color: c.muted, fontSize: 14, lineHeight: 20, marginTop: 4 }}>
-            Call it. Lock it. Learn from it. A decision-calibration system — not a news app, not a brokerage.
+            Call it. Lock it. Learn from it. A journal for calls on earnings and macro releases, scored against what the market actually did.
           </Text>
           <Text style={{ color: c.faint, fontSize: 12, lineHeight: 19, marginTop: 12 }}>
-            Scoring rule v{SCORING_RULE_VERSION} · FLAT_BAND_MULTIPLE = {FLAT_BAND_MULTIPLE}. Typical session excludes known event dates. C5 preserved at {C5_SHA.slice(0, 12)}. Calendar is
-            load-bearing: if it goes dark, scoring goes dark.
+            A call is scored on the first full trading session after its event. Up or down counts only when the move beats the stock’s typical session; anything smaller counts as flat.
           </Text>
         </View>
         <View style={{ gap: 8, paddingHorizontal: 16, paddingBottom: 16 }}>
@@ -140,7 +102,7 @@ export default function SettingsScreen() {
           >
             Replay launch animation
           </PrimaryButton>
-          <SecondaryButton onPress={() => router.push("/backend-check")}>Backend check</SecondaryButton>
+          {__DEV__ ? <SecondaryButton onPress={() => router.push("/backend-check")}>Backend check</SecondaryButton> : null}
         </View>
       </Group>
     </PushScreen>

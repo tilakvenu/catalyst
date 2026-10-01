@@ -27,7 +27,7 @@ Not in this drop. Do not implement on `versionC67` unless the brief is reopened.
 ## C67.3 screens (Phase 7) — gaps between the C67 web screens and the data layer
 
 - **No market data on the server yet.** Quotes, price change, sparklines, day range, market cap / P/E / 52-week, EPS surprise history, analyst recommendations, company profile and macro print values do not exist in the schema. Ticker shows "No quote yet" instead of the price block; Watch rows show "No quote" / "Macro"; the C67 TapeCard, typical-session and flat-band lines, and vol-adjusted impact (adjustImpactForVol) do not appear. They return once live data is ingested server-side.
-- **Notifications.** The per-event Notify toggle (Event, Ticker) and "Fire a notification now" are not ported: there is no push backend. Alert timing in Settings is saved on the phone only, because the data layer has no setter for `_User.notifyLead`.
+- **Notifications.** The per-event Notify toggle (Event, Ticker), "Fire a notification now", and (since Phase 8) the Alert timing setting are not in the app: there is no notification backend, and a setting that does nothing looks unfinished. Local notifications via expo-notifications would be the next step.
 - **Theme preference is device-only** for the same reason (`_User.theme` has no data-layer setter).
 - **Tape.** "Rank with Grok" is omitted (no LLM backend). "Refresh tape" is a normal sync; vendor news fetching belongs on the server with live ingest. Headline summaries are not in the schema, so Article shows the impact note but no summary.
 - **Search universe** is the tickers the server has (seeded); the C67 static US list is not used because clients cannot create Ticker rows.

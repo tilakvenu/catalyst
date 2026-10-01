@@ -3,7 +3,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { EMPTY_COPY } from "../../../../src/lib/catalyst/fixtures.ts";
+import { EMPTY_COPY } from "../../ui/copy";
 import { firstSentence, formatPct, formatWhen, sessionLabel } from "../../../../src/lib/catalyst/format.ts";
 import { impactLabel, kindLabel as newsKindLabel } from "../../../../src/lib/catalyst/impact.ts";
 import { marketClock } from "../../../../src/lib/catalyst/session.ts";

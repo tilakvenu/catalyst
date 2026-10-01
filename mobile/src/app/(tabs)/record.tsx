@@ -2,7 +2,7 @@
 // with scoring.ts (zero requests); nothing computed is stored on the server.
 import { useMemo, useState } from "react";
 import { Text, View } from "react-native";
-import { EMPTY_COPY } from "../../../../src/lib/catalyst/fixtures.ts";
+import { EMPTY_COPY } from "../../ui/copy";
 import { formatPct, formatWhen } from "../../../../src/lib/catalyst/format.ts";
 import {
   CALIBRATION_MIN_BAND,
@@ -92,7 +92,7 @@ export default function RecordTab() {
             ))}
           </View>
         ) : (
-          <Text style={{ color: c.muted, fontSize: 15, marginTop: 12 }}>No C67 scored calls yet.</Text>
+          <Text style={{ color: c.muted, fontSize: 15, marginTop: 12 }}>No scored calls yet.</Text>
         )}
         {lowN
           ? small(`${hits.length} of ${scored.length} scored calls. Calibration needs more observations.`)
@@ -115,7 +115,7 @@ export default function RecordTab() {
         ) : null}
       </Card>
 
-      {preC67.length ? <Text style={{ color: c.faint, fontSize: 12, lineHeight: 17, marginTop: 12, paddingHorizontal: 4 }}>Earlier scores (pre-C67 rule) · n = {preC67.length} · excluded from calibration.</Text> : null}
+      {preC67.length ? <Text style={{ color: c.faint, fontSize: 12, lineHeight: 17, marginTop: 12, paddingHorizontal: 4 }}>Earlier scores (older scoring rule) · n = {preC67.length} · excluded from calibration.</Text> : null}
       {unresolvable.length ? <Text style={{ color: c.faint, fontSize: 12, lineHeight: 17, marginTop: 4, paddingHorizontal: 4 }}>Unresolvable · n = {unresolvable.length} · excluded from accuracy.</Text> : null}
 
       {byKind.length || byDir.length ? (

@@ -2,7 +2,7 @@
 // Impact is magnitude only, on a violet ramp (never red/green). Cache only; "Refresh tape" is a sync.
 import { useMemo, useState } from "react";
 import { Text, View } from "react-native";
-import { EMPTY_COPY } from "../../../../src/lib/catalyst/fixtures.ts";
+import { EMPTY_COPY } from "../../ui/copy";
 import { impactWeight, resolveDisplayImpact } from "../../../../src/lib/catalyst/impact.ts";
 import { followedEquityTypicals, observedMoveForHeadline, typicalForTicker, upcomingFollowed } from "../../../../src/lib/catalyst/selectors.ts";
 import type { Headline, NewsImpact } from "../../../../src/lib/catalyst/types.ts";
