@@ -21,7 +21,7 @@ scores it after the event. Record shows calibration by conviction band.
   stamps lockedAt, blocks edits after event start, writes CallRevision,
   and only it writes outcomes. Functions: bootstrap, getCalendar,
   getEvidence, deleteAccount. One daily job "tick" scheduled 22:30 UTC.
-  Deployed with cloud/deploy.ts using App ID \+ Master Key only. No MCP,
+  Deployed with cloud/deploy.ts using App ID + Master Key only. No MCP,
   no account key.
 - Tests: cheat 13/13, privacy 8/8, smoke 13/13, app-layer 15/15,
   vitest 53/53.
@@ -51,12 +51,12 @@ verification, new-user experience, icon/splash/disclaimer, remove
 - SHORT REVIEW LOOPS. Every phase, and every prompt written for Claude
   Code, must end with a SHORT REPORT in this exact format, no longer
   than about 30 lines:
-    1\. Done: what changed, with commit hashes
-    2\. Tests: pass counts
-    3\. Not done or partial, and why
-    4\. Decisions needed from Tilak
-    5\. Phone check: what to tap and what should appear
-    6\. Next step
+    1. Done: what changed, with commit hashes
+    2. Tests: pass counts
+    3. Not done or partial, and why
+    4. Decisions needed from Tilak
+    5. Phone check: what to tap and what should appear
+    6. Next step
   Tilak sends the reviewer chat only this report, not full transcripts.
 - Update this file at the end of every phase: "Built so far" and
   "Current step" must always be current.
