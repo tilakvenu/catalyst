@@ -17,7 +17,7 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const activeRoute = state.routes[state.index]?.name;
   return (
-    <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: Math.max(insets.bottom, 12) + 8, alignItems: "center", paddingHorizontal: 12 }}>
+    <View style={{ pointerEvents: "box-none", position: "absolute", left: 0, right: 0, bottom: Math.max(insets.bottom, 12) + 8, alignItems: "center", paddingHorizontal: 12 }}>
       <View
         accessibilityRole="tablist"
         style={{
@@ -30,11 +30,7 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
           backgroundColor: c.glass,
           borderWidth: 0.5,
           borderColor: c.glassStroke,
-          shadowColor: "#000",
-          shadowOpacity: name === "light" ? 0.08 : 0.3,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 8,
+          boxShadow: name === "light" ? "0 8px 32px rgba(0, 0, 0, 0.08)" : "0 8px 32px rgba(0, 0, 0, 0.3)",
         }}
       >
         {TAB_BAR_ITEMS.map((it) => {

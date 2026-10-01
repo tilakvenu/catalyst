@@ -165,7 +165,7 @@ export function Segmented<T extends string>({ value, onChange, options }: { valu
             onPress={() => onChange(o.id)}
             style={[
               { flex: 1, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-              on ? { backgroundColor: c.segThumb, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 } : null,
+              on ? { backgroundColor: c.segThumb, boxShadow: "0 1px 3px rgba(0, 0, 0, 0.12)" } : null,
             ]}
           >
             <Text style={{ color: on ? c.fg : c.muted, fontSize: 13, fontWeight: "500" }}>{o.label}</Text>
@@ -186,7 +186,7 @@ export function Chip({ label, on, onPress, accent }: { label: ReactNode; on: boo
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: on }}
-      style={[{ height: accent ? 32 : 36, borderRadius: R.pill, paddingHorizontal: accent ? 12 : 14, justifyContent: "center", backgroundColor: bg }, on && !accent ? { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 } : null]}
+      style={[{ height: accent ? 32 : 36, borderRadius: R.pill, paddingHorizontal: accent ? 12 : 14, justifyContent: "center", backgroundColor: bg }, on && !accent ? { boxShadow: "0 1px 3px rgba(0, 0, 0, 0.12)" } : null]}
     >
       <Text style={[{ color: fg, fontSize: 13, fontWeight: accent ? "500" : "600" }, TABULAR]}>{label}</Text>
     </Pressable>

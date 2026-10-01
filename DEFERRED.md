@@ -23,3 +23,14 @@ Not in this drop. Do not implement on `versionC67` unless the brief is reopened.
 - **Drafts and quick notes stay on the phone.** Every client save of a `Call` is a lock (all four fields required). C67's quick-note `text` and `sentiment` have no server field; `saveDraft` keeps them local. Syncing drafts would need a separate class or fields.
 - **Per-run limits.** `tick` scores up to 1000 due calls and prunes up to 10,000 old headlines per run; a lock records up to 200 evidence headlines. Ample for the free plan; revisit with real ingest.
 - **`impact.ts` is not in the Cloud Code bundle.** Nothing ranks headlines server-side until live ingest exists; `seed.ts` uses the C67 fixtures, which are already ranked by `impact.ts`.
+
+## C67.3 screens (Phase 7) — gaps between the C67 web screens and the data layer
+
+- **No market data on the server yet.** Quotes, price change, sparklines, day range, market cap / P/E / 52-week, EPS surprise history, analyst recommendations, company profile and macro print values do not exist in the schema. Ticker shows "No quote yet" instead of the price block; Watch rows show "No quote" / "Macro"; the C67 TapeCard, typical-session and flat-band lines, and vol-adjusted impact (adjustImpactForVol) do not appear. They return once live data is ingested server-side.
+- **Notifications.** The per-event Notify toggle (Event, Ticker) and "Fire a notification now" are not ported: there is no push backend. Alert timing in Settings is saved on the phone only, because the data layer has no setter for `_User.notifyLead`.
+- **Theme preference is device-only** for the same reason (`_User.theme` has no data-layer setter).
+- **Tape.** "Rank with Grok" is omitted (no LLM backend). "Refresh tape" is a normal sync; vendor news fetching belongs on the server with live ingest. Headline summaries are not in the schema, so Article shows the impact note but no summary.
+- **Search universe** is the tickers the server has (seeded); the C67 static US list is not used because clients cannot create Ticker rows.
+- **All-events read.** The data layer exposes no public "all cached events / event by id" hook, so screens read the cache read-only through `data/cache.useCache` and `data/map` (`ui/slice.ts`). No requests, no change to the data layer API; a `useEvents()` export would make this explicit.
+- **Result ready** on the desk means "the server scored this call in the last 72 hours and this phone has not opened it yet" (device state), since scoring moved to the server's tick job.
+- **Settings sections removed** as not meaningful with a backend: Demo mode, Live API keys (no vendor keys on the phone), Demo flows A/B/C, Synthetic model, Restore demo / Reset to empty. The web app's device frame, fake status bar with the island countdown, and in-app Banner are web-simulation chrome; the native OS status bar is used instead.
